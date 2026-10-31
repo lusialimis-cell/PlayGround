@@ -1,0 +1,242 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <meta name="theme-color" content="#06110c" />
+    <meta name="description" content="APE PROJECT — a 3D pixel-art survival horror escape into a jungle reserve watched by something that has no eyes." />
+    <title>APE PROJECT // Acoustic Containment Failure</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' fill='%2306100b'/%3E%3Cpath d='M12 20h40v26H12z' fill='%2394b83d'/%3E%3Ccircle cx='24' cy='31' r='4' fill='%2306100b'/%3E%3Ccircle cx='40' cy='31' r='4' fill='%2306100b'/%3E%3Cpath d='M20 40h24' stroke='%2306100b' stroke-width='3'/%3E%3C/svg%3E" />
+    <link rel="stylesheet" href="./src/styles.css" />
+  </head>
+  <body>
+    <main id="app" aria-label="Ape Project game">
+      <canvas id="game-canvas" tabindex="0"></canvas>
+      <div class="scene-grade" aria-hidden="true"></div>
+      <div class="scene-grain" aria-hidden="true"></div>
+      <div class="scene-scanlines" aria-hidden="true"></div>
+      <div id="threat-vignette" class="threat-vignette" aria-hidden="true"></div>
+      <div id="damage-flash" class="damage-flash" aria-hidden="true"></div>
+
+      <div id="loading" class="loading">
+        <div class="loading-mark">
+          <span class="loading-ring"></span>
+          <span class="loading-glyph">A</span>
+        </div>
+        <p class="loading-kicker">INITIALIZING BIOMETRIC LINK</p>
+        <div class="loading-bar"><i id="loading-fill"></i></div>
+        <p id="loading-status" class="loading-status">CARVING VOXEL TERRAIN // 000</p>
+      </div>
+
+      <section id="start-screen" class="start-screen" aria-label="Title screen">
+        <div class="start-noise" aria-hidden="true"></div>
+        <div class="start-topline">
+          <span>BLACKSITE 09 &nbsp;//&nbsp; DEEP RESERVE</span>
+          <span class="signal"><i></i> LIVE FEED</span>
+        </div>
+
+        <div class="title-lockup">
+          <div class="eyebrow"><span class="dash"></span> ACOUSTIC CONTAINMENT FAILURE <span class="dash"></span></div>
+          <h1 class="game-title" aria-label="Ape Project">
+            <span class="title-ape">APE</span>
+            <span class="title-project">PROJECT</span>
+            <span class="title-shadow" aria-hidden="true">APE<br />PROJECT</span>
+          </h1>
+          <p class="title-tagline">IT HAS NO EYES.<br /><em>IT KNOWS WHERE YOU ARE.</em></p>
+        </div>
+
+        <div class="start-brief">
+          <div class="brief-index">FIELD DIRECTIVE <b>№ 014</b></div>
+          <p>
+            The reserve has gone dark. Three research cores are missing across 500 hectares of
+            fogbound jungle. Recover them. Return to the terminal. Make no sound.
+          </p>
+          <div class="brief-rule"><span></span><i>SUBJECT M-08 // "MOSSMAN" // AT LARGE</i><span></span></div>
+        </div>
+
+        <button id="start-btn" class="start-btn" type="button">
+          <span class="start-btn-corner tl"></span>
+          <span class="start-btn-corner tr"></span>
+          <span class="start-btn-corner bl"></span>
+          <span class="start-btn-corner br"></span>
+          <span class="start-btn-icon">▶</span>
+          <span class="start-btn-copy">
+            <b>ENTER THE RESERVE</b>
+            <small>CLICK TO ENGAGE AUDIO &amp; NEURAL INTERFACE</small>
+          </span>
+        </button>
+
+        <div class="start-controls">
+          <div><kbd>W A S D</kbd><span>MOVE</span></div>
+          <div><kbd>SHIFT</kbd><span>SPRINT</span></div>
+          <div><kbd>C</kbd><span>CROUCH</span></div>
+          <div><kbd>E</kbd><span>INTERACT</span></div>
+          <div><kbd>V</kbd><span>CAMERA</span></div>
+          <div><kbd>M</kbd><span>MAP</span></div>
+        </div>
+
+        <div class="start-footer">
+          <span>CASE FILE // APE PROJECT</span>
+          <span>SOUND RECOMMENDED</span>
+          <span>BUILD 1.0.4 // 00:47:13</span>
+        </div>
+      </section>
+
+      <section id="hud" class="hud is-hidden" aria-label="Heads-up display">
+        <header class="hud-top">
+          <div class="brand-panel">
+            <div class="brand-mark">AP</div>
+            <div class="brand-copy">
+              <b>APE PROJECT</b>
+              <span><i class="live-dot"></i> SITE 09 // FIELD LINK ACTIVE</span>
+            </div>
+          </div>
+
+          <div class="compass-wrap">
+            <div class="compass-readout"><span id="compass-deg">000°</span><span id="zone-label">LABORATORY LOBBY</span></div>
+            <div class="compass">
+              <div id="compass-strip" class="compass-strip"></div>
+              <div class="compass-notch"></div>
+            </div>
+            <div id="marker-row" class="marker-row"></div>
+          </div>
+
+          <div class="objective-panel">
+            <div class="panel-cap"><span>DIRECTIVE</span><b id="objective-index">01 / 03</b></div>
+            <h2 id="objective-title">RECOVER THE CORES</h2>
+            <p id="objective-sub">Locate the missing research cores in the reserve.</p>
+            <div class="core-slots" id="core-slots">
+              <span class="core-slot" data-core="0"></span>
+              <span class="core-slot" data-core="1"></span>
+              <span class="core-slot" data-core="2"></span>
+            </div>
+          </div>
+        </header>
+
+        <div id="alert-banner" class="alert-banner">
+          <span class="alert-icon">((•))</span>
+          <div><b>AUDITORY EVENT DETECTED</b><small>SUBJECT M-08 IS LISTENING</small></div>
+          <span class="alert-meter"><i></i><i></i><i></i><i></i><i></i></span>
+        </div>
+
+        <aside class="vitals-panel">
+          <div class="vital-row">
+            <span class="vital-label">VITAL</span>
+            <div class="bar health"><i id="health-fill"></i></div>
+            <b id="health-value">100</b>
+          </div>
+          <div class="vital-row">
+            <span class="vital-label">STAMINA</span>
+            <div class="bar stamina"><i id="stamina-fill"></i></div>
+            <b id="stamina-value">100</b>
+          </div>
+          <div class="vital-row">
+            <span class="vital-label">NOISE</span>
+            <div class="bar noise"><i id="noise-fill"></i></div>
+            <b id="noise-value">LOW</b>
+          </div>
+          <div class="vitals-foot">
+            <span id="stance-label">UPRIGHT</span>
+            <span>BIOMETRIC LINK <b>STABLE</b></span>
+          </div>
+        </aside>
+
+        <aside class="threat-panel">
+          <div class="threat-head"><span>ACOUSTIC PROXIMITY</span><i id="threat-light"></i></div>
+          <canvas id="proximity-canvas" width="220" height="110"></canvas>
+          <div class="threat-foot"><span id="threat-state">NO CONTACT</span><b id="threat-distance">-- M</b></div>
+        </aside>
+
+        <div class="crosshair" id="crosshair"><i></i><i></i><i></i><i></i><span></span></div>
+
+        <div id="interact-wrap" class="interact-wrap">
+          <kbd>E</kbd>
+          <div><b id="interact-label">HYDRAULIC DOOR B-2</b><span id="interact-action">TOGGLE SWITCH</span></div>
+        </div>
+
+        <div class="controls-hint">
+          <span><kbd>V</kbd> CAMERA</span>
+          <span><kbd>M</kbd> MAP</span>
+          <span><kbd>F</kbd> FLASHLIGHT</span>
+          <span><kbd>ESC</kbd> RELEASE</span>
+        </div>
+
+        <div id="toasts" class="toasts" aria-live="polite"></div>
+
+        <div id="subtitle" class="subtitle"></div>
+
+        <div id="touch-controls" class="touch-controls">
+          <div id="joy-zone" class="joy-zone"><div id="joy-knob" class="joy-knob"></div><span>MOVE</span></div>
+          <div class="touch-actions">
+            <button id="btn-interact" class="touch-btn touch-interact" type="button">USE</button>
+            <button id="btn-crouch" class="touch-btn touch-small" type="button">C</button>
+            <button id="btn-sprint" class="touch-btn touch-sprint" type="button">RUN</button>
+            <button id="btn-camera" class="touch-btn touch-small" type="button">CAM</button>
+            <button id="btn-map" class="touch-btn touch-small" type="button">MAP</button>
+            <button id="btn-light" class="touch-btn touch-small" type="button">LAMP</button>
+            <button id="btn-pause" class="touch-btn touch-small" type="button">II</button>
+          </div>
+          <div id="look-zone" class="look-zone"></div>
+        </div>
+      </section>
+
+      <section id="map-overlay" class="map-overlay" aria-label="Reserve map">
+        <div class="map-frame">
+          <div class="map-head">
+            <div>
+              <span>RESERVE CARTOGRAPHY // SITE 09</span>
+              <h2>THE GREEN VEIL</h2>
+            </div>
+            <button id="map-close" class="map-close" type="button">CLOSE [M]</button>
+          </div>
+          <div class="map-canvas-wrap">
+            <canvas id="map-canvas" width="800" height="800"></canvas>
+            <div class="map-scan"></div>
+            <div class="map-legend">
+              <span><i class="lg-you"></i> YOU</span>
+              <span><i class="lg-core"></i> CORE</span>
+              <span><i class="lg-lab"></i> LAB</span>
+              <span><i class="lg-contact"></i> M-08</span>
+            </div>
+          </div>
+          <div class="map-foot">
+            <span>500 × 500 M // ACTIVE TELEMETRY</span>
+            <span id="map-coords">X 0000 / Z 0000</span>
+          </div>
+        </div>
+      </section>
+
+      <section id="pause-overlay" class="pause-overlay">
+        <div class="pause-box">
+          <span class="eyebrow">LINK INTERRUPTED</span>
+          <h2>PAUSED</h2>
+          <p>Click to re-enter the reserve.</p>
+          <button id="resume-btn" type="button">RESUME FEED</button>
+          <button id="restart-btn" class="ghost" type="button">RESTART SESSION</button>
+        </div>
+      </section>
+
+      <section id="death-overlay" class="end-overlay death">
+        <div class="end-content">
+          <span class="end-kicker">BIOMETRIC LINK SEVERED</span>
+          <h2>YOU WERE<br />HEARD.</h2>
+          <p id="death-detail">The jungle went quiet.</p>
+          <button id="retry-btn" type="button">RE-ENTER THE RESERVE</button>
+        </div>
+      </section>
+
+      <section id="win-overlay" class="end-overlay win">
+        <div class="end-content">
+          <span class="end-kicker">EXTRACTION PROTOCOL COMPLETE</span>
+          <h2>THE RESERVE<br />RELEASES YOU.</h2>
+          <p id="win-detail">Three cores recovered. The lift is ascending.</p>
+          <div class="win-stats" id="win-stats"></div>
+          <button id="again-btn" type="button">RUN IT BACK</button>
+        </div>
+      </section>
+
+      <div id="screen-fade" class="screen-fade"></div>
+    </main>
+    <script type="module" src="./src/main.js"></script>
+  </body>
+</html>
