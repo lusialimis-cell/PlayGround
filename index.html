@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="theme-color" content="#070d0a">
+<title>APE PROJECT — Laboratory Escape</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%23070d0a'/%3E%3Ctext x='16' y='24' text-anchor='middle' font-family='monospace' font-size='24' fill='%23b9ff63'%3EA%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="styles.css">
+<script type="importmap">
+{ "imports": { "three": "./vendor/three.module.js", "three/addons/": "./vendor/addons/" } }
+</script>
+</head>
+<body>
+<div id="app">
+  <canvas id="game" aria-label="Ape Project 3D game view"></canvas>
+
+  <div class="fx-layer" aria-hidden="true">
+    <div class="fx-scanlines"></div>
+    <div class="fx-grain"></div>
+    <div class="fx-vignette"></div>
+    <div class="fx-damage" id="damageFlash"></div>
+    <div class="fx-white" id="whiteFlash"></div>
+  </div>
+
+  <div id="hud" class="hud">
+    <section class="objective-panel panel">
+      <div class="panel-kicker"><span class="dot"></span> ACTIVE DIRECTIVE</div>
+      <h2 id="objectiveTitle">RECOVER ISOTOPE CORES</h2>
+      <p id="objectiveDetail">0 / 3 RECOVERED — FOLLOW THE BEACONS</p>
+      <div class="core-pips" id="corePips">
+        <span class="pip"></span><span class="pip"></span><span class="pip"></span>
+      </div>
+    </section>
+
+    <div class="compass-cluster">
+      <div class="compass">
+        <div class="compass-tape" id="compassTape"></div>
+        <div class="compass-center"></div>
+        <div class="compass-caret" id="compassCaret">▲</div>
+      </div>
+      <div class="tracker-line">
+        <span id="trackerLabel">NEAREST BEACON</span>
+        <strong id="trackerDist">—</strong>
+        <span id="trackerBearing">—</span>
+      </div>
+    </div>
+
+    <div class="hud-right">
+      <div class="hud-buttons">
+        <button id="muteBtn" class="icon-btn" aria-label="Toggle audio" title="Audio (M)">♪</button>
+        <button id="pauseBtn" class="icon-btn" aria-label="Pause game" title="Pause (P)">Ⅱ</button>
+      </div>
+      <div class="threat-card" id="threatCard">
+        <div class="threat-head"><span class="dot danger"></span> ACOUSTIC PROXIMITY</div>
+        <div class="threat-bars" id="threatBars">
+          <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+        </div>
+        <div class="threat-word" id="threatWord">SILENT</div>
+      </div>
+    </div>
+
+    <div id="crosshair" class="crosshair"><span></span></div>
+
+    <div class="prompt" id="prompt">
+      <span class="key">E</span>
+      <span id="promptLabel">INTERACT</span>
+    </div>
+
+    <div class="status-cluster">
+      <div class="status-row">
+        <span class="status-icon">✚</span>
+        <div class="bar"><div class="bar-fill health" id="healthFill"></div></div>
+        <span class="status-num" id="healthNum">100</span>
+      </div>
+      <div class="status-row">
+        <span class="status-icon">⚡</span>
+        <div class="bar"><div class="bar-fill stamina" id="staminaFill"></div></div>
+        <span class="status-num" id="staminaNum">100</span>
+      </div>
+      <div class="status-row small">
+        <span class="status-icon lamp" id="lampIcon">◉</span>
+        <span id="lampText">HEADLAMP ON</span>
+        <span class="noise-label">NOISE</span>
+        <div class="noise-pips" id="noisePips">
+          <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+        </div>
+      </div>
+    </div>
+
+    <div class="controls-hint">
+      <span><b>WASD</b> MOVE</span><span><b>SHIFT</b> RUN</span><span><b>C</b> CROUCH</span>
+      <span><b>E</b> USE</span><span><b>Q</b> THROW</span><span><b>V</b> VIEW</span><span><b>F</b> LAMP</span>
+    </div>
+
+    <div class="toast-stack" id="toasts"></div>
+
+    <div class="monster-banner" id="monsterBanner">
+      <div class="monster-glyph">◉</div>
+      <div>
+        <strong>MOSS.MAN ACOUSTIC CONTACT</strong>
+        <span id="monsterBannerText">IT HEARD YOU. BREAK LINE OF SOUND.</span>
+      </div>
+    </div>
+
+    <div class="reticle-hint" id="reticleHint"></div>
+  </div>
+
+  <div id="startScreen" class="screen start-screen">
+    <div class="start-grid">
+      <div class="start-copy">
+        <div class="eyebrow"><span class="live-dot"></span> SUBSURFACE BIOME 07 // CONTAINMENT FAILED</div>
+        <h1>APE<span>PROJECT</span></h1>
+        <div class="subtitle">LABORATORY ESCAPE</div>
+        <p class="lore">The lifts are dead. Three isotope cores are scattered across the Mossline jungle. Recover them, return to the terminal, and ride the emergency ascent out. The thing outside has no eyes. It hears <em>everything</em>.</p>
+        <div class="start-actions">
+          <button id="startBtn" class="primary-btn" aria-label="Play"><span>ENTER THE LAB</span><small>CLICK TO ENGAGE</small></button>
+          <div class="start-meta"><span>WASD + MOUSE</span><span>HEADPHONES ADVISED</span><span>1 PLAYER</span></div>
+        </div>
+        <div class="start-note">MOSS.MAN SPECIMEN: 2.8 M // BLIND // 33 KM/H // ACOUSTIC APEX</div>
+      </div>
+      <aside class="start-file">
+        <div class="file-head">SPECIMEN DOSSIER <span>/// EYES ONLY</span></div>
+        <div class="specimen-art" aria-hidden="true">
+          <div class="ape-silhouette">
+            <i class="a"></i><i class="b"></i><i class="c"></i><i class="d"></i><i class="e"></i>
+          </div>
+          <div class="scan-line"></div>
+        </div>
+        <dl>
+          <div><dt>CODENAME</dt><dd>MOSS.MAN</dd></div>
+          <div><dt>VISION</dt><dd>NONE / OCULAR APOPTOSIS</dd></div>
+          <div><dt>HEARING</dt><dd>SUPER-SENSITIVE</dd></div>
+          <div><dt>BEHAVIOUR</dt><dd>ACOUSTIC PURSUIT</dd></div>
+        </dl>
+        <div class="file-warning">IF IT STOPS MOVING — RUN. IF IT TILTS ITS HEAD — DON'T.</div>
+      </aside>
+    </div>
+    <div class="start-footer">
+      <span>DR. E. VOSS — FIELD LOG 44: “THE STRIPES ARE NOT CAMOUFLAGE.”</span>
+      <span class="blink">▲ REC</span>
+    </div>
+  </div>
+
+  <div id="pauseScreen" class="screen menu-screen hidden">
+    <div class="menu-card">
+      <div class="eyebrow">SESSION SUSPENDED // LIFE SUPPORT NOMINAL</div>
+      <h2>PAUSED</h2>
+      <div class="settings-list">
+        <label class="setting"><span>MASTER AUDIO</span><button id="pauseMute" class="toggle on">ON</button></label>
+        <label class="setting"><span>LOOK SENSITIVITY</span><input id="sensitivity" type="range" min="0.35" max="2.4" step="0.05" value="1"></label>
+        <label class="setting"><span>INVERT LOOK Y</span><button id="invertY" class="toggle">OFF</button></label>
+        <label class="setting"><span>VIEW MODE</span><button id="viewMode" class="toggle">THIRD PERSON</button></label>
+      </div>
+      <div class="menu-actions">
+        <button id="resumeBtn" class="primary-btn small" aria-label="Resume">RESUME</button>
+        <button id="restartBtn" class="ghost-btn">RESTART INCIDENT</button>
+      </div>
+      <p class="menu-hint">P / ESC RESUME · M MUTE</p>
+    </div>
+  </div>
+
+  <div id="noteScreen" class="screen note-screen hidden">
+    <div class="note-card">
+      <div class="note-head"><span id="noteKicker">RECOVERED DATAPAD</span><span id="noteIndex">01</span></div>
+      <h3 id="noteTitle">FIELD LOG</h3>
+      <p id="noteBody"></p>
+      <button id="noteClose" class="ghost-btn">CLOSE [E]</button>
+    </div>
+  </div>
+
+  <div id="deathScreen" class="screen end-screen hidden">
+    <div class="end-card dead">
+      <div class="eyebrow danger-text">ACOUSTIC CONTACT // VITALS LOST</div>
+      <h2>TAKEN<span>BY THE MOSS</span></h2>
+      <p>The jungle goes quiet. Somewhere behind the rain, something is still listening.</p>
+      <div class="end-stats" id="deathStats"></div>
+      <button id="retryBtn" class="primary-btn" aria-label="Play">RE-ENTER THE LAB</button>
+      <small>R TO RESTART</small>
+    </div>
+  </div>
+
+  <div id="winScreen" class="screen end-screen hidden">
+    <div class="end-card won">
+      <div class="eyebrow">ASCENT LIFT // SURFACE SIGNAL ACQUIRED</div>
+      <h2>ESCAPED<span>THE APE PROJECT</span></h2>
+      <p>The shaft doors seal behind you. The rain on the surface sounds almost human.</p>
+      <div class="end-stats" id="winStats"></div>
+      <button id="againBtn" class="primary-btn" aria-label="Play">RUN IT AGAIN</button>
+      <small>THANK YOU FOR PLAYING</small>
+    </div>
+  </div>
+
+  <div id="mobileControls" class="mobile-controls hidden">
+    <div class="joystick" id="joystick">
+      <div class="joystick-ring"></div>
+      <div class="joystick-stick" id="stick"></div>
+      <span class="joystick-label">MOVE</span>
+    </div>
+    <div class="look-pad" id="lookPad"><span>DRAG TO LOOK</span></div>
+    <div class="touch-actions">
+      <button class="touch-btn act" id="touchInteract">USE</button>
+      <button class="touch-btn" id="touchJump">JUMP</button>
+      <button class="touch-btn" id="touchCrouch">CROUCH</button>
+      <button class="touch-btn" id="touchRun">RUN</button>
+      <button class="touch-btn" id="touchView">VIEW</button>
+      <button class="touch-btn small" id="touchThrow">THROW</button>
+      <button class="touch-btn small" id="touchLamp">LAMP</button>
+    </div>
+  </div>
+
+  <div id="lockHint" class="lock-hint hidden">CLICK TO CAPTURE MOUSE</div>
+  <div id="loadingVeil" class="loading-veil"><div class="load-inner"><span>INITIALISING MOSS BIOME</span><div class="load-bar"><i></i></div></div></div>
+</div>
+
+<script type="module" src="src/main.js"></script>
+</body>
+</html>
