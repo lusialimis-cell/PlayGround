@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="theme-color" content="#101513" />
+    <meta name="description" content="APE PROJECT — an open-world wilderness survival experience. No objectives. No rescue." />
+    <title>APE PROJECT — The quiet is listening</title>
+  </head>
+  <body>
+    <div id="app">
+      <canvas id="world" aria-label="3D jungle world"></canvas>
+      <div class="grain" aria-hidden="true"></div><div class="vignette" aria-hidden="true"></div><div class="scanlines" aria-hidden="true"></div>
+      <section id="title-screen" class="title-screen">
+        <header class="topline"><span class="brand-mark">AP<span>•</span></span><span class="topline-text">FIELD RECORDING&nbsp; / &nbsp;04.17.86</span><span class="topline-right"><i class="status-dot"></i> SIGNAL LOST</span></header>
+        <div class="title-copy"><div class="eyebrow"><span class="eyebrow-line"></span> AN UNRECOVERED PLACE &nbsp;—&nbsp; 500 × 500 M</div><h1>APE<br><span>PROJECT</span></h1><div class="title-rule"><span></span><small>NO ONE IS COMING</small><span></span></div><p class="intro">The canopy closed six days ago.<br>Something beneath it learned your footsteps.</p></div>
+        <div class="menu-bottom"><div class="play-block"><button id="play-button" class="play-button"><span class="play-glyph">▶</span><span>ENTER THE WILDERNESS</span><span class="button-arrow">↗</span></button><div class="play-sub"><span class="keycap">W A S D</span> TO MOVE <span class="sub-divider">/</span> <span class="keycap">MOUSE</span> TO LOOK</div></div><div class="mode-card"><div class="mode-label">SESSION TYPE</div><div class="mode-options"><button class="mode-option active" data-mode="solo"><span class="mode-indicator"></span> SOLO</button><button class="mode-option" data-mode="room"><span class="mode-indicator"></span> LOCAL ROOM</button></div><div id="room-note" class="room-note">Intelligent echoes wander nearby.</div></div><div class="bottom-coord"><span>19° 24′ S</span><span>61° 07′ W</span><span class="coord-muted">— UNMAPPED</span></div></div>
+        <div class="side-index"><span>FIELD NOTES</span><b>01</b><span>THE GREEN BELOW</span></div><div class="title-scroll">SCROLL TO DESCEND <span>↓</span></div>
+      </section>
+      <div id="game-ui" class="game-ui hidden">
+        <div class="hud-top"><div class="hud-brand"><span class="brand-mark">AP<span>•</span></span><div><b>FIELD UNIT 07</b><small>CANOPY FLOOR / SECTOR 04</small></div></div><div class="compass"><span class="compass-label">BEARING</span><div class="compass-read"><span class="compass-tick">‹</span><b id="bearing">N</b><span class="compass-degrees" id="degrees">000°</span><span class="compass-tick">›</span></div></div><div class="hud-actions"><button id="sound-button" class="icon-button" title="Toggle ambient sound">♫</button><button id="settings-button" class="icon-button" title="Settings">⚙</button><button id="leave-button" class="leave-button">LEAVE <span>↗</span></button></div></div>
+        <div class="location-tag"><span class="location-pulse"></span><span id="location-name">THE LOWLANDS</span><small>— 500 M WILDERNESS</small></div><div class="center-reticle"><i></i><i></i><i></i><i></i><b></b></div>
+        <div class="threat-indicator hidden" id="threat"><span class="threat-icon">◉</span><div><b id="threat-name">SOMETHING HEARD YOU</b><small id="threat-distance">CLOSING — 38 M</small></div><div class="threat-bars"><i></i><i></i><i></i></div></div>
+        <div class="hud-bottom"><div class="vitals-panel"><div class="vital-row"><div class="vital-label"><span class="vital-icon">♥</span> CONDITION</div><div class="vital-bar"><i id="health-fill" style="width:100%"></i></div><span class="vital-value" id="health-value">100</span></div><div class="vital-row"><div class="vital-label"><span class="vital-icon stamina-icon">ϟ</span> STAMINA</div><div class="vital-bar stamina-bar"><i id="stamina-fill" style="width:100%"></i></div><span class="vital-value" id="stamina-value">100</span></div><div class="vital-row"><div class="vital-label"><span class="vital-icon">◌</span> NOISE</div><div class="vital-bar noise-bar"><i id="noise-fill" style="width:8%"></i></div><span class="vital-value" id="noise-value">LOW</span></div></div><div class="map-panel"><div class="map-head"><span>FIELD MAP</span><span id="map-coord">250 / 250</span></div><canvas id="minimap" width="120" height="120"></canvas><span class="map-north">N</span></div><div class="field-status"><span class="status-kicker">FIELD STATUS</span><b id="status-text">UNOBSERVED</b><div class="status-line"></div><small id="time-readout">06:42 AM&nbsp; · &nbsp;CLEARING</small><div class="session-pill"><i></i><span id="session-label">SOLO / ECHOES ACTIVE</span></div></div></div>
+        <div class="control-hint"><span><b>W A S D</b> MOVE</span><span><b>SHIFT</b> SPRINT</span><span><b>C</b> CROUCH</span><span><b>SPACE</b> CALL</span><span><b>ESC</b> PAUSE</span></div><div class="toast" id="toast"></div>
+        <div id="pause-overlay" class="pause-overlay hidden"><div class="pause-box"><span class="eyebrow">YOU ARE STILL HERE</span><h2>THE FOREST<br>DOESN'T PAUSE.</h2><p>The things that listen are still listening.</p><button id="resume-button" class="play-button"><span>RETURN TO THE UNDERGROWTH</span><span class="button-arrow">↗</span></button><button id="pause-leave" class="text-button">LEAVE THIS PLACE</button></div></div>
+        <div id="settings-panel" class="settings-panel hidden"><button id="close-settings" class="settings-close">×</button><span class="eyebrow">FIELD EQUIPMENT</span><h3>DISPLAY SETTINGS</h3><label>CAMERA FIELD OF VIEW <span id="fov-value">72°</span><input id="fov-slider" type="range" min="55" max="95" value="72"></label><label>PIXEL RESOLUTION <span id="pixel-value">HIGH</span><input id="pixel-slider" type="range" min="0.55" max="1" value="0.78" step="0.05"></label><div class="settings-note">YOUR SIGNAL DOES NOT REACH BEYOND THE CANOPY.</div></div>
+      </div>
+      <div class="loading-screen" id="loading"><div class="loading-mark">AP<span>•</span></div><div class="loading-title">GENERATING THE CANOPY</div><div class="loading-track"><i></i></div><small id="loading-detail">BUILDING TERRAIN / 500 × 500 M</small></div>
+      <div class="mobile-controls" id="mobile-controls"><div class="joystick" id="joystick"><div class="stick"></div></div><div class="mobile-actions"><button id="mobile-crouch">CROUCH</button><button id="mobile-run">RUN</button></div><div class="look-zone" id="look-zone"></div></div>
+    </div><script type="module" src="/src/main.js"></script>
+  </body>
+</html>
