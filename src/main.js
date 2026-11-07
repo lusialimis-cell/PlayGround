@@ -167,7 +167,7 @@ function gameStart(){
  tell('THE CANOPY IS LISTENING. MOVE QUIETLY.',4200);
  if(innerWidth>720&&worldEl.requestPointerLock)worldEl.requestPointerLock();
 }
-function leaveGame(){started=false;paused=false;$('#game-ui').classList.add('hidden');$('#pause-overlay').classList.add('hidden');$('#title-screen').classList.remove('leaving');if(document.pointerLockElement)document.exitPointerLock();}
+function leaveGame(){started=false;paused=false;$('#game-ui').classList.add('hidden');$('#pause-overlay').classList.add('hidden');$('#title-screen').classList.remove('leaving');if(document.pointerLockElement)document.exitPointerLock();if(typeof resetGame==='function')resetGame();}
 function setPause(value){paused=value;$('#pause-overlay').classList.toggle('hidden',!paused);if(!paused&&innerWidth>720&&worldEl.requestPointerLock)worldEl.requestPointerLock();else if(paused&&document.pointerLockElement)document.exitPointerLock();}
 function terrainCollision(pos){
   pos.x=clamp(pos.x,-97,97);pos.z=clamp(pos.z,-97,97);
@@ -199,4 +199,175 @@ function updatePlayer(dt){
   if(moving&&elapsed-lastNoise>(sprinting?.38:input.crouch?2.1:.82)){emitNoise(input.crouch?.2:sprinting?1:.48);lastNoise=elapsed;}
   camera.fov=lerp(camera.fov,Number($('#fov-slider').value),1-Math.exp(-dt*3));camera.updateProjectionMatrix();
 }
+
+// Three lost field transmitters can be recovered, then carried back to the crash-site beacon.
+const artifacts=[];
+const artifactSpots=[new THREE.Vector3(-56,0,-50),new THREE.Vector3(62,0,-46),new THREE.Vector3(48,0,66)];
+const beaconSpot=new THREE.Vector3(19,0,-27);
+function addMarker(position,index){
+  const group=new THREE.Group();group.position.set(position.x,heightAt(position.x,position.z),position.z);
+  const base=new THREE.Mesh(new THREE.CylinderGeometry(.42,.58,.22,7),mat(0x514f3b));base.position.y=.12;base.castShadow=true;group.add(base);
+  const core=new THREE.Mesh(new THREE.OctahedronGeometry(.48,0),mats.crystal);core.position.y=.92;core.rotation.y=index*1.1;core.castShadow=true;group.add(core);
+  const ring=new THREE.Mesh(new THREE.TorusGeometry(.8,.045,4,12),mat(0xb7d79a,.4,{emissive:0x536e3d,emissiveIntensity:.6}));ring.rotation.x=Math.PI/2;ring.position.y=.14;group.add(ring);
+  const light=new THREE.PointLight(0x8dd79b,1.8,9,2);light.position.y=1.2;group.add(light);scene.add(group);
+  artifacts.push({group,core,ring,position:group.position,found:false,index});
+}
+artifactSpots.forEach(addMarker);
+const beacon=new THREE.Group();beacon.position.set(beaconSpot.x,heightAt(beaconSpot.x,beaconSpot.z),beaconSpot.z);
+const beaconBase=new THREE.Mesh(new THREE.CylinderGeometry(1.05,1.35,.45,8),mats.metal);beaconBase.position.y=.22;beaconBase.castShadow=true;beacon.add(beaconBase);
+const beaconPillar=new THREE.Mesh(new THREE.CylinderGeometry(.13,.25,3.8,6),mats.bark[0]);beaconPillar.position.y=2.2;beaconPillar.castShadow=true;beacon.add(beaconPillar);
+const beaconOrb=new THREE.Mesh(new THREE.OctahedronGeometry(.62,0),mats.crystal);beaconOrb.position.y=4.2;beacon.add(beaconOrb);
+const beaconLamp=new THREE.PointLight(0x8de2a1,2.4,18,2);beaconLamp.position.y=4;beacon.add(beaconLamp);scene.add(beacon);
+
+const objective=document.createElement('div');objective.className='objective-card';objective.innerHTML='<span class="objective-kicker">RECOVERY ORDER</span><b id="objective-title">FIND THE TRANSMITTERS</b><span id="objective-detail">0 / 3 FIELD RELAYS</span><small>FOLLOW THE GREEN SIGNALS ON YOUR MAP</small>';$('#game-ui').append(objective);
+const interactHint=document.createElement('div');interactHint.className='interact-hint';$('#game-ui').append(interactHint);
+const endOverlay=document.createElement('div');endOverlay.className='end-overlay hidden';endOverlay.innerHTML='<div class="end-card"><span class="eyebrow" id="end-eyebrow">FIELD REPORT</span><h2 id="end-title">SIGNAL RECOVERED</h2><p id="end-copy"></p><button class="play-button" id="again-button"><span>PLAY AGAIN</span><span class="button-arrow">↗</span></button><button class="text-button" id="end-menu">RETURN TO MENU</button></div>';$('#game-ui').append(endOverlay);
+let recovered=0,ended=false,interactionCooldown=0,attackFlash=0;
+function updateObjective(){
+  $('#objective-title').textContent=recovered===3?'RETURN TO THE BEACON':'FIND THE TRANSMITTERS';
+  $('#objective-detail').textContent=recovered===3?'3 / 3 RELAYS · BEACON ACTIVE':`${recovered} / 3 FIELD RELAYS`;
+  $('#status-text').textContent=recovered===3?'BEACON ACTIVE':noise>.65?'SOUND CARRIED':'UNOBSERVED';
+}
+function interact(){
+  if(!started||paused||dead||ended||interactionCooldown>0)return;
+  interactionCooldown=.35;
+  const nearby=artifacts.find(a=>!a.found&&player.position.distanceTo(a.position)<3.1);
+  if(nearby){nearby.found=true;nearby.group.visible=false;recovered++;updateObjective();emitNoise(.48);tell(`FIELD RELAY ${recovered} OF 3 RECOVERED.`,2200);return;}
+  if(recovered===3&&player.position.distanceTo(beacon.position)<4){finishGame(true);return;}
+  tell('NOTHING WITHIN REACH.',900);
+}
+function finishGame(won){
+  if(ended)return;ended=true;paused=true;$('#end-eyebrow').textContent=won?'TRANSMISSION ESTABLISHED':'FIELD REPORT · LOST CONTACT';$('#end-title').textContent=won?'YOU MADE IT OUT':'THE CANOPY KEPT YOU';$('#end-copy').textContent=won?`All three relays are online. The signal got through. Field time: ${formatTime(elapsed)}.`:'Your signal has gone quiet. The forest is still listening.';endOverlay.classList.remove('hidden');if(document.pointerLockElement)document.exitPointerLock();
+}
+function formatTime(seconds){const m=Math.floor(seconds/60),s=Math.floor(seconds%60);return `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;}
+
+const keys=new Set();
+function keyDown(e){
+  const k=e.key.toLowerCase();keys.add(k);
+  if([' ','arrowup','arrowdown','arrowleft','arrowright'].includes(k))e.preventDefault();
+  if(k==='escape'&&started&&!ended){setPause(!paused);return;}
+  if((k==='e'||k===' ')&&!e.repeat)interact();
+  if(k==='c'&&!e.repeat)input.crouch=!input.crouch;
+}
+function keyUp(e){keys.delete(e.key.toLowerCase());}
+window.addEventListener('keydown',keyDown);window.addEventListener('keyup',keyUp);window.addEventListener('blur',()=>{keys.clear();input.forward=input.right=0;input.sprint=false;});
+function syncKeys(){
+  if(touchActive)return;
+  input.forward=(keys.has('w')||keys.has('arrowup')?1:0)-(keys.has('s')||keys.has('arrowdown')?1:0);
+  input.right=(keys.has('d')||keys.has('arrowright')?1:0)-(keys.has('a')||keys.has('arrowleft')?1:0);
+  input.sprint=keys.has('shift');
+}
+let touchActive=false;
+worldEl.addEventListener('click',()=>{if(started&&!paused&&!ended&&innerWidth>720&&!document.pointerLockElement)worldEl.requestPointerLock?.();});
+document.addEventListener('pointerlockchange',()=>{mouseLocked=document.pointerLockElement===worldEl;});
+document.addEventListener('mousemove',e=>{if(mouseLocked&&started&&!paused){yaw-=e.movementX*.0022;pitch=clamp(pitch-e.movementY*.0018,-.52,.38);}});
+worldEl.addEventListener('touchstart',e=>{if(innerWidth<=720&&started&&!paused){const t=e.changedTouches[0];lookTouch={x:t.clientX,y:t.clientY};}},{passive:true});
+let lookTouch=null;
+worldEl.addEventListener('touchmove',e=>{if(lookTouch&&innerWidth<=720&&started&&!paused){const t=e.changedTouches[0];yaw-=(t.clientX-lookTouch.x)*.006;pitch=clamp(pitch-(t.clientY-lookTouch.y)*.004,-.5,.35);lookTouch={x:t.clientX,y:t.clientY};}},{passive:true});
+worldEl.addEventListener('touchend',()=>lookTouch=null,{passive:true});
+const joystick=$('#joystick'),stick=joystick.querySelector('.stick');let joyPointer=null;
+joystick.addEventListener('pointerdown',e=>{joyPointer=e.pointerId;touchActive=true;joystick.setPointerCapture(e.pointerId);updateJoystick(e);});
+joystick.addEventListener('pointermove',e=>{if(e.pointerId===joyPointer)updateJoystick(e);});
+function updateJoystick(e){const r=joystick.getBoundingClientRect(),dx=e.clientX-(r.left+r.width/2),dy=e.clientY-(r.top+r.height/2),max=r.width*.34,d=Math.hypot(dx,dy),scale=Math.min(1,max/(d||1));input.right=dx*scale/max;input.forward=-dy*scale/max;stick.style.transform=`translate(${dx*scale}px,${dy*scale}px)`;}
+function releaseJoystick(){joyPointer=null;input.forward=input.right=0;stick.style.transform='';touchActive=false;}
+joystick.addEventListener('pointerup',releaseJoystick);joystick.addEventListener('pointercancel',releaseJoystick);
+$('#mobile-run').addEventListener('pointerdown',e=>{e.preventDefault();input.sprint=true;});['pointerup','pointercancel','pointerleave'].forEach(ev=>$('#mobile-run').addEventListener(ev,()=>input.sprint=false));
+$('#mobile-crouch').addEventListener('click',()=>{input.crouch=!input.crouch;$('#mobile-crouch').classList.toggle('active',input.crouch);});
+const mobileInteract=document.createElement('button');mobileInteract.id='mobile-interact';mobileInteract.textContent='USE';$('.mobile-actions').append(mobileInteract);mobileInteract.addEventListener('click',interact);
+
+function updatePredators(dt){
+  for(const p of predators){
+    p.attackCooldown=Math.max(0,p.attackCooldown-dt);
+    const distance=p.group.position.distanceTo(player.position),heardRecently=elapsed-p.lastHeard<15;
+    if(p.state==='wander'&&distance<11){p.state='charge';p.target.copy(player.position);}
+    if(p.state==='investigate'&&heardRecently&&distance<20)p.state='charge';
+    if(p.state==='charge'&&distance>p.hear*1.35&&elapsed-p.lastHeard>10)p.state='investigate';
+    if((p.state==='charge'||(p.state==='investigate'&&heardRecently))&&distance<2.1&&p.attackCooldown<=0){
+      health=Math.max(0,health-(p.kind==='mossman'?17:13));p.attackCooldown=1.05;attackFlash=.28;emitNoise(.8);tell(`${p.name} STRUCK YOU. BREAK LINE OF SIGHT.`,1700);
+      if(health<=0){finishGame(false);break;}
+    }
+    let target=p.target;
+    if(p.state==='charge'){target=player.position;p.target.copy(player.position);}
+    else if(p.state==='wander'&&p.group.position.distanceTo(p.target)<2){p.target.set((rand()-.5)*155,0,(rand()-.5)*155);p.target.y=heightAt(p.target.x,p.target.z);}
+    else if(p.state==='investigate'&&!heardRecently){p.state='wander';}
+    const dx=target.x-p.group.position.x,dz=target.z-p.group.position.z,d=Math.hypot(dx,dz);
+    if(d>.15){const speed=p.speed*(p.state==='charge'?1:.45),step=Math.min(d,speed*dt);p.group.position.x+=dx/d*step;p.group.position.z+=dz/d*step;p.group.rotation.y=Math.atan2(dx,dz);p.group.position.y=heightAt(p.group.position.x,p.group.position.z);p.group.userData.phase+=dt*(p.state==='charge'?10:4);p.group.userData.rig.position.y=Math.sin(p.group.userData.phase)*.08;p.group.userData.limbs.forEach((limb,i)=>limb.rotation.x=Math.sin(p.group.userData.phase+(i%2)*Math.PI)*.42);}
+  }
+}
+function updateBots(dt){
+  bots.forEach((b,i)=>{
+    const g=b.group;
+    if(g.position.distanceTo(b.goal)<2||rand()<dt*.015)b.goal.set((rand()-.5)*150,0,(rand()-.5)*150);
+    const dx=b.goal.x-g.position.x,dz=b.goal.z-g.position.z,d=Math.hypot(dx,dz);
+    if(d>.4){g.position.x+=dx/d*dt*2.35;g.position.z+=dz/d*dt*2.35;g.rotation.y=Math.atan2(dx,dz);g.position.y=heightAt(g.position.x,g.position.z);g.userData.phase+=dt*5;g.userData.rig.position.y=Math.sin(g.userData.phase)*.1;g.userData.limbs.forEach((limb,j)=>limb.rotation.x=Math.sin(g.userData.phase+(j%2)*Math.PI)*.35);}
+    const threat=predators.find(p=>p.group.position.distanceTo(g.position)<18);if(threat&&rand()<dt*.35)emitNoise(.42,g.position);
+  });
+}
+function updateWorldObjects(dt){
+  artifacts.forEach(a=>{if(!a.found){a.core.rotation.y+=dt*.65;a.core.position.y=.92+Math.sin(elapsed*2+a.index)*.12;a.ring.rotation.z+=dt*.3;}});
+  beaconOrb.rotation.y+=dt*.8;beaconOrb.position.y=4.2+Math.sin(elapsed*1.8)*.16;
+  interactionCooldown=Math.max(0,interactionCooldown-dt);attackFlash=Math.max(0,attackFlash-dt);
+  let nearest=null,nearestD=999;
+  artifacts.filter(a=>!a.found).forEach(a=>{const d=player.position.distanceTo(a.position);if(d<nearestD){nearest=a;nearestD=d;}});
+  if(recovered===3){nearest=beacon;nearestD=player.position.distanceTo(beacon.position);}
+  if(nearest&&nearestD<4.2){interactHint.textContent=nearestD<3.1?'[ E ]  RECOVER FIELD RELAY':'FIELD RELAY NEARBY';interactHint.classList.add('visible');if(innerWidth<=720)mobileInteract.classList.add('visible');}
+  else{interactHint.classList.remove('visible');mobileInteract.classList.remove('visible');}
+  if(nearestD<3.1&&input.interact){input.interact=false;interact();}
+}
+function updateHUD(dt){
+  const h=Math.round(health),s=Math.round(stamina),n=Math.round(noise*100);
+  $('#health-fill').style.width=`${h}%`;$('#health-value').textContent=String(h).padStart(3,'0');
+  $('#stamina-fill').style.width=`${s}%`;$('#stamina-value').textContent=String(s).padStart(3,'0');
+  $('#noise-fill').style.width=`${n}%`;$('#noise-value').textContent=n>70?'HIGH':n>35?'MED':'LOW';
+  $('#degrees').textContent=`${String(Math.round(((yaw*180/Math.PI%360)+360)%360)).padStart(3,'0')}°`;
+  const bearing=((yaw*180/Math.PI%360)+360)%360;$('#bearing').textContent=['N','NE','E','SE','S','SW','W','NW'][Math.round(bearing/45)%8];
+  $('#map-coord').textContent=`${Math.round(player.position.x+100)} / ${Math.round(player.position.z+100)}`;
+  $('#time-readout').textContent=`${formatClock(elapsed)}  ·  ${noise>.7?'DISTURBED':'CLEARING'}`;
+  const threat=predators.map(p=>({p,d:p.group.position.distanceTo(player.position)})).sort((a,b)=>a.d-b.d)[0];
+  const threatEl=$('#threat');if(threat&&threat.d<62){threatEl.classList.remove('hidden');$('#threat-name').textContent=threat.p.state==='charge'?`${threat.p.name} IS CLOSING`:'SOMETHING HEARD YOU';$('#threat-distance').textContent=`${threat.p.state==='charge'?'CLOSING':'TRACKING'} — ${Math.round(threat.d)} M`;threatEl.style.setProperty('--danger',`${Math.max(0,1-threat.d/62)}`);}else threatEl.classList.add('hidden');
+  $('#game-ui').classList.toggle('under-attack',attackFlash>0);
+  drawMap();
+}
+function formatClock(seconds){const total=(6*60+42+Math.floor(seconds/60))%(12*60),h=Math.floor(total/60),m=total%60;return `${String(h||12).padStart(2,'0')}:${String(m).padStart(2,'0')} AM`;}
+const mapCanvas=$('#minimap'),mapCtx=mapCanvas.getContext('2d');
+function drawMap(){
+  const c=mapCtx,w=mapCanvas.width,h=mapCanvas.height;c.clearRect(0,0,w,h);c.fillStyle='#18251d';c.fillRect(0,0,w,h);
+  c.strokeStyle='rgba(190,205,170,.10)';c.lineWidth=1;for(let i=20;i<w;i+=20){c.beginPath();c.moveTo(i,0);c.lineTo(i,h);c.stroke();c.beginPath();c.moveTo(0,i);c.lineTo(w,i);c.stroke();}
+  const px=(x)=>w/2+x*.52,py=(z)=>h/2+z*.52;
+  c.fillStyle='#527b53';artifacts.forEach(a=>{if(!a.found){c.beginPath();c.arc(px(a.position.x),py(a.position.z),3,0,Math.PI*2);c.fill();}});
+  c.fillStyle='#d57a4a';predators.forEach(p=>{const x=px(p.group.position.x),y=py(p.group.position.z);if(x>0&&x<w&&y>0&&y<h){c.beginPath();c.arc(x,y,2.4,0,Math.PI*2);c.fill();}});
+  c.fillStyle='#d9c292';c.beginPath();c.arc(px(beacon.position.x),py(beacon.position.z),2.5,0,Math.PI*2);c.fill();
+  c.save();c.translate(px(player.position.x),py(player.position.z));c.rotate(-yaw);c.fillStyle='#eff0dc';c.beginPath();c.moveTo(0,-5);c.lineTo(3.2,3);c.lineTo(0,1.8);c.lineTo(-3.2,3);c.closePath();c.fill();c.restore();
+}
+
+let audioContext=null,ambienceGain=null,soundOn=false;
+function toggleSound(){
+  soundOn=!soundOn;$('#sound-button').classList.toggle('active',soundOn);
+  if(!audioContext){const Ctx=window.AudioContext||window.webkitAudioContext;if(Ctx){audioContext=new Ctx();const osc=audioContext.createOscillator(),gain=audioContext.createGain(),filter=audioContext.createBiquadFilter();osc.type='sine';osc.frequency.value=56;filter.type='lowpass';filter.frequency.value=180;gain.gain.value=0;osc.connect(filter).connect(gain).connect(audioContext.destination);osc.start();ambienceGain=gain;}}
+  if(audioContext){audioContext.resume();ambienceGain.gain.setTargetAtTime(soundOn?.035:0,audioContext.currentTime,.18);}
+  if(soundOn)tell('AMBIENT MONITORING ON.',1200);
+}
+$('#play-button').addEventListener('click',gameStart);$('#resume-button').addEventListener('click',()=>setPause(false));$('#leave-button').addEventListener('click',leaveGame);$('#pause-leave').addEventListener('click',leaveGame);
+$('#sound-button').addEventListener('click',toggleSound);$('#settings-button').addEventListener('click',()=>$('#settings-panel').classList.toggle('hidden'));$('#close-settings').addEventListener('click',()=>$('#settings-panel').classList.add('hidden'));
+$('#fov-slider').addEventListener('input',e=>$('#fov-value').textContent=`${e.target.value}°`);
+$('#pixel-slider').addEventListener('input',e=>{const value=Number(e.target.value);$('#pixel-value').textContent=value>.85?'ULTRA':value>.68?'HIGH':'LOW';renderer.setPixelRatio(Math.min(devicePixelRatio,1.4)*value);renderer.setSize(innerWidth,innerHeight,false);});
+document.querySelectorAll('.mode-option').forEach(button=>button.addEventListener('click',()=>setMode(button.dataset.mode)));
+$('#again-button').addEventListener('click',()=>{resetGame();gameStart();});$('#end-menu').addEventListener('click',leaveGame);
+function resetGame(){
+  health=100;stamina=100;noise=0;elapsed=0;recovered=0;ended=false;dead=false;paused=false;velocity.set(0,0,0);player.position.set(0,heightAt(0,0),0);player.userData.rig.position.set(0,0,0);yaw=0;pitch=-.12;
+  artifacts.forEach(a=>{a.found=false;a.group.visible=true;});predators.forEach((p,i)=>{p.group.position.set(i?-42:39,heightAt(i?-42:39,i?-31:28),i?-31:28);p.state='wander';p.target.set(i?-33:24,0,i?-28:20);p.lastHeard=0;p.attackCooldown=0;});$('#end-overlay');endOverlay.classList.add('hidden');$('#pause-overlay').classList.add('hidden');updateObjective();
+}
+function resize(){camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight,false);}
+window.addEventListener('resize',resize);
+
+let previous=performance.now();
+function frame(now){
+  requestAnimationFrame(frame);const dt=Math.min(.05,(now-previous)/1000||0);previous=now;
+  syncKeys();
+  if(started&&!paused&&!ended){elapsed+=dt;updatePlayer(dt);updatePredators(dt);updateBots(dt);updateWorldObjects(dt);updateObjective();updateHUD(dt);}
+  else if(!started){updateWorldObjects(dt);}
+  if(!started||(!paused&&!ended))updateCamera(dt);
+  renderer.render(scene,camera);
+}
+updateObjective();updateCamera(1);requestAnimationFrame(frame);
 
