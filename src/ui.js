@@ -17,10 +17,6 @@ export class UI {
       compassDeg: document.getElementById('compass-deg'),
       zoneLabel: document.getElementById('zone-label'),
       markerRow: document.getElementById('marker-row'),
-      objectiveIndex: document.getElementById('objective-index'),
-      objectiveTitle: document.getElementById('objective-title'),
-      objectiveSub: document.getElementById('objective-sub'),
-      coreSlots: [...document.querySelectorAll('.core-slot')],
       healthFill: document.getElementById('health-fill'),
       staminaFill: document.getElementById('stamina-fill'),
       noiseFill: document.getElementById('noise-fill'),
@@ -47,10 +43,7 @@ export class UI {
       mapCoords: document.getElementById('map-coords'),
       pause: document.getElementById('pause-overlay'),
       death: document.getElementById('death-overlay'),
-      win: document.getElementById('win-overlay'),
       deathDetail: document.getElementById('death-detail'),
-      winDetail: document.getElementById('win-detail'),
-      winStats: document.getElementById('win-stats'),
       screenFade: document.getElementById('screen-fade'),
       crosshair: document.getElementById('crosshair'),
       touch: document.getElementById('touch-controls'),
@@ -178,11 +171,11 @@ export class UI {
     }
     this.el.interactWrap.classList.add('show');
     if (item.kind === 'term' || item.kind === 'terminal') {
-      this.el.interactLabel.textContent = 'SITE TERMINAL // UPLINK';
-      this.el.interactAction.textContent = 'ACCESS RESEARCH LOG';
+      this.el.interactLabel.textContent = 'SITE TERMINAL // LOCAL SYSTEMS';
+      this.el.interactAction.textContent = 'INSPECT TERMINAL';
     } else if (item.kind === 'core') {
       this.el.interactLabel.textContent = item.label;
-      this.el.interactAction.textContent = 'RECOVER RESEARCH CORE';
+      this.el.interactAction.textContent = 'COLLECT SPECIMEN';
     } else if (item.kind === 'door') {
       const d = door || item.door;
       this.el.interactLabel.textContent = `${item.label} // LEFT SWITCH`;
@@ -342,24 +335,6 @@ export class UI {
     ctx.fillText('N', w / 2 - 2, 12);
   }
 
-  setObjective(coreCount, stage = 'find') {
-    const key = `${coreCount}-${stage}`;
-    if (this.lastObjective === key) return;
-    this.lastObjective = key;
-    this.el.coreSlots.forEach((slot, i) => slot.classList.toggle('found', i < coreCount));
-    this.el.objectiveIndex.textContent = coreCount >= 3 ? '03 / 03' : `${String(coreCount).padStart(2, '0')} / 03`;
-    if (stage === 'return') {
-      this.el.objectiveTitle.textContent = 'RETURN TO THE TERMINAL';
-      this.el.objectiveSub.textContent = 'All cores recovered. Reach the lobby uplink.';
-    } else if (stage === 'win') {
-      this.el.objectiveTitle.textContent = 'EXTRACTION IN PROGRESS';
-      this.el.objectiveSub.textContent = 'Uplink accepted. Hold position.';
-    } else {
-      this.el.objectiveTitle.textContent = 'RECOVER THE CORES';
-      this.el.objectiveSub.textContent = `${3 - coreCount} research core${3 - coreCount === 1 ? '' : 's'} still missing in the reserve.`;
-    }
-  }
-
   setMap(open) {
     this.mapOpen = open;
     this.el.mapOverlay.classList.toggle('show', open);
@@ -515,18 +490,6 @@ export class UI {
 
   hideDeath() {
     this.el.death.classList.remove('show');
-  }
-
-  showWin(detail, stats) {
-    if (detail) this.el.winDetail.textContent = detail;
-    if (stats) {
-      this.el.winStats.innerHTML = stats.map((s) => `<span>${s.label}<b>${s.value}</b></span>`).join('');
-    }
-    this.el.win.classList.add('show');
-  }
-
-  hideWin() {
-    this.el.win.classList.remove('show');
   }
 
   setCameraMode(mode) {

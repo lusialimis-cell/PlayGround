@@ -41,10 +41,10 @@ class ApeProject {
     this.crouchToggle = false;
     this.jumpQueued = false;
     this.currentInteractable = null;
-    this.coreCount = 0;
     this.runTime = 0;
     this.runStartedAt = 0;
     this.deathTime = 0;
+    this.deathDuration = 3.4;
     this.introAngle = 0;
     this.introCamera = new THREE.Vector3();
     this.firstOutside = false;
@@ -109,8 +109,7 @@ class ApeProject {
       this.ui.setLoading(94, 'CALIBRATING ACOUSTIC ARRAY // 094');
       await this.frameWait();
       this.buildFpArms();
-      this.ui.setObjective(0, 'find');
-      this.lab.setTerminalObjective('DIRECTIVE // RECOVER 3 CORES');
+      this.lab.setTerminalObjective('M-08 // LOCAL SYSTEMS');
       this.ui.setLoading(100, 'LINK ESTABLISHED // AWAITING OPERATOR');
       this.resize();
       this.snapIntroCamera();
@@ -289,7 +288,6 @@ class ApeProject {
     document.getElementById('resume-btn').addEventListener('click', () => this.resume());
     document.getElementById('restart-btn').addEventListener('click', () => this.restartRun());
     document.getElementById('retry-btn').addEventListener('click', () => this.restartRun());
-    document.getElementById('again-btn').addEventListener('click', () => this.restartRun());
     document.getElementById('map-close').addEventListener('click', () => this.closeMap());
     window.addEventListener('keydown', (event) => this.onKeyDown(event));
     window.addEventListener('keyup', (event) => this.keys.delete(event.code));
@@ -441,7 +439,7 @@ class ApeProject {
     this.ui.toast('BIOMETRIC LINK ESTABLISHED // APE-PRIME ONLINE');
     setTimeout(() => {
       if (this.state === 'playing') {
-        this.ui.subtitle('Recover three research cores from the reserve. Return to the lab terminal. Make no sound.', 6200);
+        this.ui.subtitle('The reserve is open. Explore at your own pace, and keep an ear on the jungle.', 6200);
       }
     }, 1000);
     setTimeout(() => {
@@ -621,57 +619,18 @@ class ApeProject {
   }
 
   onCoreCollected(core) {
-    this.coreCount = this.jungle.cores.filter((c) => c.collected).length;
     this.effects.voxels.spawnShards(core.position, 24);
     this.effects.waves.pulse(core.position, 11, 0x7dffe0, 1.3, 0.5);
     this.audio.pickup();
-    this.ui.toast(`${core.name} // SECURED`, 'core', 4400);
-    this.ui.setObjective(this.coreCount, this.coreCount >= 3 ? 'return' : 'find');
-    this.mossman.escalate();
-    this.lab.setTerminalObjective(this.coreCount >= 3 ? 'UPLINK READY // RETURN' : `CORES ${this.coreCount}/3 // UPLINK LOCKED`);
-    if (this.coreCount >= 3) {
-      this.ui.subtitle('All three cores are live. Return to the laboratory terminal. It heard every beacon wake.', 6000);
-      this.ui.alert('ALL CORES RECOVERED', 'RETURN TO THE LOBBY TERMINAL', 5000);
-      this.audio.alarm();
-      this.ui.toast('DIRECTIVE UPDATED // RETURN TO TERMINAL', 'warn', 6000);
-    } else {
-      const remaining = 3 - this.coreCount;
-      this.ui.subtitle(remaining === 2 ? 'One core recovered. The jungle has gone very quiet.' : 'Two cores recovered. Something is circling the clearing.', 5200);
-    }
+    this.ui.toast(`${core.name} // COLLECTED`, 'core', 3200);
+    this.ui.subtitle('A strange piece of research equipment. The reserve holds plenty more secrets.', 4200);
   }
 
   onTerminal() {
     if (this.state !== 'playing') return;
     this.audio.terminal();
-    if (this.coreCount < 3) {
-      this.ui.toast(`UPLINK LOCKED // ${3 - this.coreCount} RESEARCH CORE${3 - this.coreCount === 1 ? '' : 'S'} MISSING`, 'warn', 4200);
-      this.ui.subtitle('The terminal needs all three cores. The reserve is still holding them.', 4200);
-      return;
-    }
-    this.beginWin();
-  }
-
-  beginWin() {
-    if (this.state === 'won') return;
-    this.state = 'won';
-    if (document.pointerLockElement) document.exitPointerLock();
-    this.ui.setObjective(3, 'win');
-    this.ui.fadeBlack(true, 900);
-    this.audio.victory();
-    this.player.setHidden(false);
-    this.ui.toast('EXTRACTION UPLINK ACCEPTED', 'core', 3000);
-    setTimeout(() => {
-      this.ui.showWin(
-        'Three cores recovered. The lobby seals behind you. Somewhere below, the green thing keeps listening.',
-        [
-          { label: 'TIME', value: formatTime(this.runTime) },
-          { label: 'CORES', value: '03/03' },
-          { label: 'DOORS', value: String(this.doorsTouched) },
-          { label: 'HUNTS', value: String(this.chaseCount) },
-        ],
-      );
-      this.ui.fadeBlack(false, 800);
-    }, 950);
+    this.ui.toast('LOCAL SYSTEMS // NO ACTIVE UPLINK', '', 3200);
+    this.ui.subtitle('An old local terminal. Nothing here is asking you to do anything.', 3600);
   }
 
   onPlayerDamage(amount, source) {
@@ -686,15 +645,25 @@ class ApeProject {
     if (this.state === 'dead') return;
     this.state = 'dead';
     this.deathTime = performance.now();
+    this.deathCameraStart = this.camera.position.clone();
+    this.deathFocus = this.player.position.clone().add(new THREE.Vector3(0, 0.9, 0));
+    this.deathAttacker = source?.position?.clone?.() || this.deathFocus.clone();
+    this.deathYaw = this.player.yaw;
     if (document.pointerLockElement) document.exitPointerLock();
     this.audio.death();
     this.shake.add(2.4);
     this.ui.showDamage();
     this.ui.setInteract(null);
+    this.player.moving = false;
+    this.player.speed = 0;
+    this.player.rig.rotation.x = -0.22;
+    this.player.torso.rotation.x = 0.38;
+    this.player.head.rotation.x = -0.25;
+    this.player.arms.forEach((arm) => { arm.shoulder.rotation.x = -0.75; arm.elbow.rotation.x = -0.9; });
     setTimeout(() => {
+      if (this.state !== 'dead') return;
       this.ui.showDeath('The jungle went quiet. The last thing you heard was your own pulse.');
-      this.ui.fadeBlack(false, 600);
-    }, 850);
+    }, this.deathDuration * 1000);
   }
 
   onZoneChanged(inside) {
@@ -705,7 +674,7 @@ class ApeProject {
       this.ui.subtitle('The air is hot and wet. The canopy swallows every sound except your own.', 5200);
       setTimeout(() => {
         if (this.state === 'playing' && !this.player.inside) {
-          this.ui.subtitle('Find the cores. Do not run unless you have to.', 4000);
+          this.ui.subtitle('The jungle stretches far beyond the lab. Watch for movement between the trees.', 4000);
         }
       }, 5500);
     } else if (inside) {
@@ -863,7 +832,19 @@ class ApeProject {
 
   updateCamera(dt, time) {
     if (this.state === 'dead') {
-      this.camera.position.y += Math.sin(time * 3) * 0.0004;
+      const elapsed = Math.max(0, (performance.now() - this.deathTime) / 1000);
+      const t = clamp(elapsed / this.deathDuration, 0, 1);
+      const ease = t * t * (3 - 2 * t);
+      const attackerSide = this.deathAttacker.clone().sub(this.deathFocus);
+      attackerSide.y = 0;
+      if (attackerSide.lengthSq() < 0.01) attackerSide.set(Math.sin(this.deathYaw), 0, Math.cos(this.deathYaw));
+      attackerSide.normalize();
+      const closeShot = this.deathFocus.clone().addScaledVector(attackerSide, 2.8 - ease * 0.7);
+      closeShot.y += 1.15 - ease * 0.25;
+      closeShot.x += Math.sin(elapsed * 1.4) * 0.035;
+      this.camera.position.copy(this.deathCameraStart).lerp(closeShot, ease);
+      const lookAt = this.deathFocus.clone().lerp(this.deathAttacker, Math.min(0.28, ease * 0.28));
+      this.camera.lookAt(lookAt);
       return;
     }
     const isFirst = this.cameraMode === 'first';
@@ -992,7 +973,6 @@ class ApeProject {
     this.ui.setCompass(((compassHeading % 360) + 360) % 360, this.player, this.jungle, this.mossman, this.camYaw);
     this.ui.setZone(this.getZoneName());
     this.ui.setThreat(this.mossman.getThreatInfo(this.player), this.player, this.camYaw, time);
-    this.ui.setObjective(this.coreCount, this.coreCount >= 3 ? 'return' : 'find');
     if (this.ui.mapOpen) this.ui.drawMap(this.player, this.jungle, this.mossman, this.camYaw);
     // Alert buffer cooldown.
     if (this.heardCooldown > 0) this.heardCooldown -= dt;
@@ -1020,7 +1000,6 @@ class ApeProject {
     this.state = 'playing';
     this.runStartedAt = performance.now();
     this.runTime = 0;
-    this.coreCount = 0;
     this.crouchToggle = false;
     this.jumpQueued = false;
     this.chaseCount = 0;
@@ -1036,10 +1015,8 @@ class ApeProject {
     this.effects.voxels.items.forEach((item) => { item.active = false; });
     this.effects.waves.items.forEach((item) => { item.active = false; item.mesh.visible = false; });
     this.ui.hideDeath();
-    this.ui.hideWin();
     this.ui.showPause(false);
     this.ui.setMap(false);
-    this.ui.setObjective(0, 'find');
     this.ui.setInteract(null);
     this.ui.el.btnCrouch.classList.remove('on');
     this.ui.fadeBlack(false, 500);
@@ -1068,7 +1045,6 @@ class ApeProject {
       this.effects.voxels.update(dt);
       this.effects.waves.update(dt);
       this.lab.update(dt * 0.15);
-      this.player.updateAnimation(dt, this.lab);
       this.player.syncTransform();
       this.updateCamera(dt, time);
       this.shake.update(dt);

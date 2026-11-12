@@ -799,89 +799,6 @@ kbd {
 
 .marker-row i.warn { background: var(--red); }
 
-/* objective panel */
-
-.objective-panel {
-  justify-self: end;
-  width: min(300px, 100%);
-  padding: 11px 13px 12px;
-  border-top: 1px solid rgba(195, 222, 153, 0.34);
-  border-right: 1px solid rgba(195, 222, 153, 0.1);
-  background:
-    linear-gradient(110deg, rgba(16, 28, 15, 0.72), rgba(3, 10, 6, 0.52)),
-    repeating-linear-gradient(0deg, transparent 0 7px, rgba(162, 198, 114, 0.025) 8px);
-  clip-path: polygon(0 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%);
-  filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.36));
-}
-
-.panel-cap {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  color: var(--moss);
-  font-size: 8px;
-  letter-spacing: 0.2em;
-}
-
-.panel-cap b {
-  color: rgba(216, 233, 194, 0.45);
-  font-weight: 400;
-}
-
-.objective-panel h2 {
-  margin: 6px 0 3px;
-  font-family: var(--sans);
-  font-size: 20px;
-  line-height: 1;
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  color: #e4ebd2;
-}
-
-.objective-panel p {
-  margin: 0;
-  font-family: var(--sans);
-  font-size: 11px;
-  line-height: 1.25;
-  color: rgba(207, 224, 185, 0.48);
-}
-
-.core-slots {
-  display: flex;
-  gap: 5px;
-  margin-top: 9px;
-}
-
-.core-slot {
-  position: relative;
-  width: 30px;
-  height: 16px;
-  border: 1px solid rgba(179, 211, 135, 0.2);
-  background: rgba(2, 8, 4, 0.45);
-  clip-path: polygon(0 0, 100% 0, 100% 70%, 70% 100%, 0 100%);
-}
-
-.core-slot::after {
-  content: 'LOST';
-  position: absolute;
-  inset: 0;
-  display: grid;
-  place-items: center;
-  color: rgba(184, 207, 153, 0.27);
-  font-size: 6px;
-  letter-spacing: 0.1em;
-}
-
-.core-slot.found {
-  border-color: var(--cyan);
-  background: rgba(38, 93, 76, 0.4);
-  box-shadow: inset 0 0 9px rgba(89, 236, 195, 0.18), 0 0 7px rgba(87, 229, 187, 0.1);
-}
-
-.core-slot.found::after {
-  content: 'CORE';
-  color: var(--cyan);
-}
 
 /* --------------------------------------------------------------------- */
 /* Alert, vitals, threat                                                  */
@@ -1516,26 +1433,6 @@ kbd {
 
 .end-content button { width: min(280px, 100%); margin: 0 auto; }
 
-.win-stats {
-  display: flex;
-  justify-content: center;
-  gap: 23px;
-  margin: 0 0 22px;
-  font-family: var(--mono);
-  font-size: 8px;
-  letter-spacing: 0.12em;
-  color: rgba(214, 230, 190, 0.45);
-}
-
-.win-stats b {
-  display: block;
-  margin-top: 3px;
-  font-family: var(--pixel);
-  color: var(--cyan);
-  font-size: 13px;
-  font-weight: 400;
-}
-
 .screen-fade {
   position: absolute;
   inset: 0;
@@ -1668,10 +1565,6 @@ kbd {
   }
 
   .compass-wrap { display: none; }
-  .objective-panel { width: min(230px, 53vw); padding: 8px 10px; }
-  .objective-panel h2 { font-size: 14px; }
-  .objective-panel p { font-size: 9px; }
-  .core-slot { width: 22px; height: 12px; }
 
   .brand-copy span { display: none; }
   .brand-mark { width: 32px; height: 32px; }
@@ -1715,9 +1608,6 @@ kbd {
 
 @media (max-width: 520px) {
   .hud-top { top: 14px; left: 14px; right: 14px; }
-  .objective-panel p { display: none; }
-  .objective-panel { width: auto; min-width: 168px; }
-  .core-slots { margin-top: 6px; }
   .brand-copy b { font-size: 9px; }
   .vitals-panel { width: 175px; }
   .vital-row { grid-template-columns: 36px 1fr 18px; }

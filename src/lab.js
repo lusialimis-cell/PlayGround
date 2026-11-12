@@ -353,7 +353,7 @@ export class Laboratory {
 
     // Exterior hazard chevrons.
     const outsideSign = new THREE.Mesh(new THREE.PlaneGeometry(1.35, 0.27), new THREE.MeshBasicMaterial({
-      map: makeTextTexture(`M-08 HABITAT // ${def.name}`, { width: 512, height: 80, size: 26, color: '#bcce8c', bg: '#13170e' }),
+      map: makeTextTexture('MOSS PROJECT', { width: 512, height: 80, size: 30, color: '#bcce8c', bg: '#13170e' }),
       toneMapped: false,
     }));
     outsideSign.position.set(0, 3.1, -0.37);
@@ -879,7 +879,7 @@ export class Laboratory {
       for (const mat of door.indicatorMaterials) mat.color.setHex(0xff5038);
       door.swLight.material.color.setHex(0xff5038);
     }
-    this.setTerminalObjective('DIRECTIVE // RECOVER 3 CORES');
+    this.setTerminalObjective('M-08 // LOCAL SYSTEMS');
   }
 
   isDoorOpenAt(x, z) {
