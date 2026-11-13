@@ -4,11 +4,11 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
     <meta name="theme-color" content="#06110c" />
-    <meta name="description" content="APE PROJECT — a 3D pixel-art survival horror escape into a jungle reserve watched by something that has no eyes." />
+    <meta name="description" content="APE PROJECT — a 3D pixel-art survival horror walk through a jungle reserve watched by something that has no eyes." />
     <title>APE PROJECT // Acoustic Containment Failure</title>
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' fill='%2306100b'/%3E%3Cpath d='M12 20h40v26H12z' fill='%2394b83d'/%3E%3Ccircle cx='24' cy='31' r='4' fill='%2306100b'/%3E%3Ccircle cx='40' cy='31' r='4' fill='%2306100b'/%3E%3Cpath d='M20 40h24' stroke='%2306100b' stroke-width='3'/%3E%3C/svg%3E" />
-    <script type="module" crossorigin src="./assets/index-BYIJu_KK.js"></script>
-    <link rel="stylesheet" crossorigin href="./assets/index-COs4NnN4.css">
+    <script type="module" crossorigin src="./assets/index-3OLkTfkh.js"></script>
+    <link rel="stylesheet" crossorigin href="./assets/index-DjO-DBL7.css">
   </head>
   <body>
     <main id="app" aria-label="Ape Project game">
@@ -49,10 +49,10 @@
         <div class="start-brief">
           <div class="brief-index">FIELD NOTES <b>№ 014</b></div>
           <p>
-            Recover the three scattered research cores, then bring them back to the laboratory terminal
-            to restore the uplink and escape. Stay quiet: Subject M-08 is listening.
+            No mission. No objective. No extraction. The reserve is open—wander the Green Veil at your
+            own pace and see what the old facility left behind. Subject M-08 is still listening.
           </p>
-          <div class="brief-rule"><span></span><i>SUBJECT M-08 // "MOSSMAN" // AT LARGE</i><span></span></div>
+          <div class="brief-rule"><span></span><i>NO MISSION // WANDER FREELY</i><span></span></div>
         </div>
 
         <button id="start-btn" class="start-btn" type="button">
@@ -103,12 +103,6 @@
           </div>
 
         </header>
-
-        <aside class="objective-panel" aria-live="polite" aria-label="Current objective">
-          <span class="objective-kicker">MISSION // FIELD RECOVERY</span>
-          <b id="objective-title">RECOVER RESEARCH CORES <i>0 / 3</i></b>
-          <span id="objective-detail">Find the three cores marked on your compass, then return to the lab terminal.</span>
-        </aside>
 
         <div id="alert-banner" class="alert-banner">
           <span class="alert-icon">((•))</span>
@@ -191,7 +185,6 @@
             <div class="map-scan"></div>
             <div class="map-legend">
               <span><i class="lg-you"></i> YOU</span>
-              <span><i class="lg-core"></i> CORE</span>
               <span><i class="lg-lab"></i> LAB</span>
               <span><i class="lg-contact"></i> M-08</span>
             </div>
@@ -219,15 +212,6 @@
           <h2>YOU WERE<br />HEARD.</h2>
           <p id="death-detail">The jungle went quiet.</p>
           <button id="retry-btn" type="button">RE-ENTER THE RESERVE</button>
-        </div>
-      </section>
-
-      <section id="win-overlay" class="end-overlay win">
-        <div class="end-content">
-          <span class="end-kicker">UPLINK RESTORED // SITE 09</span>
-          <h2>YOU MADE<br />IT OUT.</h2>
-          <p>All three research cores are online. The reserve uplink is restored—and a rescue signal is finally leaving the Green Veil.</p>
-          <button id="win-retry-btn" type="button">PLAY AGAIN</button>
         </div>
       </section>
 
