@@ -78,13 +78,10 @@ class ApeProject {
       this.ui.setLoading(28, 'FORGING SUBTERRANEAN LOBBY // 028');
       this.lab = createLaboratory(this.scene, {
         onHydraulic: (door, open) => this.onHydraulic(door, open),
-        onTerminal: () => this.onTerminal(),
       });
       this.ui.setLoading(48, 'GROWING 500 × 500 M RESERVE // 048');
       await this.frameWait();
-      this.jungle = new Jungle(this.scene, this.lab, {
-        onCoreCollected: (core) => this.onCoreCollected(core),
-      });
+      this.jungle = new Jungle(this.scene, this.lab);
       this.ui.setLoading(68, 'ASSEMBLING APE-PRIME RIG // 068');
       await this.frameWait();
       this.player = new Player(this.scene, {
@@ -109,8 +106,6 @@ class ApeProject {
       this.ui.setLoading(94, 'CALIBRATING ACOUSTIC ARRAY // 094');
       await this.frameWait();
       this.buildFpArms();
-      this.ui.setObjective(0, this.jungle.cores.length);
-      this.lab.setTerminalObjective(`CORES SECURED 0/${this.jungle.cores.length} // UPLINK OFFLINE`);
       this.ui.setLoading(100, 'LINK ESTABLISHED // AWAITING OPERATOR');
       this.resize();
       this.snapIntroCamera();
@@ -289,7 +284,6 @@ class ApeProject {
     document.getElementById('resume-btn').addEventListener('click', () => this.resume());
     document.getElementById('restart-btn').addEventListener('click', () => this.restartRun());
     document.getElementById('retry-btn').addEventListener('click', () => this.restartRun());
-    document.getElementById('win-retry-btn').addEventListener('click', () => this.restartRun());
     document.getElementById('map-close').addEventListener('click', () => this.closeMap());
     window.addEventListener('keydown', (event) => this.onKeyDown(event));
     window.addEventListener('keyup', (event) => this.keys.delete(event.code));
@@ -441,12 +435,9 @@ class ApeProject {
     this.ui.toast('BIOMETRIC LINK ESTABLISHED // APE-PRIME ONLINE');
     setTimeout(() => {
       if (this.state === 'playing') {
-        this.ui.subtitle('The reserve is open. Explore at your own pace, and keep an ear on the jungle.', 6200);
+        this.ui.subtitle('No mission. No destination. The reserve is yours to wander.', 6200);
       }
     }, 1000);
-    setTimeout(() => {
-      if (this.state === 'playing') this.ui.toast('HYDRAULIC SWITCHES ARE MOUNTED LEFT OF EACH DOOR', '', 4800);
-    }, 6200);
   }
 
   requestPointerLock() {
@@ -482,7 +473,7 @@ class ApeProject {
     this.suppressPause = true;
     if (this.pointerLocked) document.exitPointerLock();
     this.ui.setMap(true);
-    this.ui.drawMap(this.player, this.jungle, this.mossman, this.camYaw, true);
+    this.ui.drawMap(this.player, this.mossman, this.camYaw, true);
     this.audio.ui(false);
   }
 
@@ -583,7 +574,6 @@ class ApeProject {
       this.audio.switchClick();
       this.doorsTouched += 1;
     }
-    if (item.kind === 'terminal') this.audio.terminal();
     item.action();
     if (this.state === 'playing') this.updateInteraction();
   }
@@ -618,39 +608,6 @@ class ApeProject {
         3200,
       );
     }
-  }
-
-  onCoreCollected(core) {
-    this.effects.voxels.spawnShards(core.position, 24);
-    this.effects.waves.pulse(core.position, 11, 0x7dffe0, 1.3, 0.5);
-    this.audio.pickup();
-    const collected = this.jungle.cores.filter((item) => item.collected).length;
-    const total = this.jungle.cores.length;
-    this.ui.setObjective(collected, total);
-    this.lab.setTerminalObjective(`CORES SECURED ${collected}/${total} // ${collected === total ? 'UPLINK READY' : 'UPLINK OFFLINE'}`);
-    this.ui.toast(`${core.name} // COLLECTED  ${collected}/${total}`, 'core', 3200);
-    this.ui.subtitle(collected === total
-      ? 'That was the last core. Get back to the laboratory terminal and restore the uplink.'
-      : 'Core secured. Follow the remaining field markers, then return to the laboratory terminal.', 4600);
-  }
-
-  onTerminal() {
-    if (this.state !== 'playing') return;
-    const total = this.jungle.cores.length;
-    const collected = this.jungle.cores.filter((core) => core.collected).length;
-    if (collected < total) {
-      this.lab.setTerminalObjective(`CORES SECURED ${collected}/${total} // UPLINK OFFLINE`);
-      this.ui.toast(`UPLINK LOCKED // ${total - collected} CORE${total - collected === 1 ? '' : 'S'} REQUIRED`, 'danger', 3600);
-      this.ui.subtitle(`The terminal needs all ${total} research cores. ${collected} of ${total} secured; the compass marks the remaining field signals.`, 4600);
-      return;
-    }
-
-    this.lab.setTerminalObjective('UPLINK RESTORED // RESCUE SIGNAL SENT');
-    this.state = 'won';
-    this.currentInteractable = null;
-    this.ui.setInteract(null);
-    this.ui.showWin();
-    if (document.pointerLockElement) document.exitPointerLock();
   }
 
   onPlayerDamage(amount, source) {
@@ -972,28 +929,21 @@ class ApeProject {
     chest.y += 0.85;
     this.camera.getWorldDirection(_camDir);
     const labItem = this.lab.getNearestInteractable(chest, _camDir);
-    const coreItem = this.jungle.getNearestInteractable(chest, _camDir);
-    let best = null;
-    if (labItem && coreItem) {
-      best = chest.distanceTo(labItem.position) <= chest.distanceTo(coreItem.position) ? labItem : coreItem;
-    } else {
-      best = labItem || coreItem;
-    }
     // The switch must be comprehensible from outside too; use facing only
     // as a soft preference, never as a hard gate.
-    this.currentInteractable = best;
-    this.ui.setInteract(best);
-    this.ui.el.crosshair.classList.toggle('hot', !!best);
+    this.currentInteractable = labItem;
+    this.ui.setInteract(labItem);
+    this.ui.el.crosshair.classList.toggle('hot', !!labItem);
   }
 
   updateHUD(dt, time) {
     this.ui.setVitals(this.player);
     // Bearing of the view direction, with north (-Z) at zero degrees.
     const compassHeading = (Math.atan2(-Math.sin(this.camYaw), Math.cos(this.camYaw)) * 180) / Math.PI;
-    this.ui.setCompass(((compassHeading % 360) + 360) % 360, this.player, this.jungle, this.mossman, this.camYaw);
+    this.ui.setCompass(((compassHeading % 360) + 360) % 360, this.player, this.mossman, this.camYaw);
     this.ui.setZone(this.getZoneName());
     this.ui.setThreat(this.mossman.getThreatInfo(this.player), this.player, this.camYaw, time);
-    if (this.ui.mapOpen) this.ui.drawMap(this.player, this.jungle, this.mossman, this.camYaw);
+    if (this.ui.mapOpen) this.ui.drawMap(this.player, this.mossman, this.camYaw);
     // Alert buffer cooldown.
     if (this.heardCooldown > 0) this.heardCooldown -= dt;
   }
@@ -1002,9 +952,7 @@ class ApeProject {
     if (this.player.inside) return 'LABORATORY LOBBY // SECURE';
     const p = this.player.position;
     for (const core of this.jungle.cores) {
-      if (!core.collected && p.distanceTo(core.position) < 30) {
-        return `${core.landmark} // CLEARING`;
-      }
+      if (p.distanceTo(core.position) < 30) return `${core.landmark} // CLEARING`;
     }
     const d = Math.hypot(p.x, p.z);
     if (d < 26) return 'BUNKER APRON // GREEN VEIL';
@@ -1031,13 +979,9 @@ class ApeProject {
     this.player.reset();
     this.mossman.reset();
     this.lab.resetDoors();
-    this.jungle.resetCores();
-    this.ui.setObjective(0, this.jungle.cores.length);
-    this.lab.setTerminalObjective(`CORES SECURED 0/${this.jungle.cores.length} // UPLINK OFFLINE`);
     this.effects.voxels.items.forEach((item) => { item.active = false; });
     this.effects.waves.items.forEach((item) => { item.active = false; item.mesh.visible = false; });
     this.ui.hideDeath();
-    this.ui.hideWin();
     this.ui.showPause(false);
     this.ui.setMap(false);
     this.ui.setInteract(null);
@@ -1074,7 +1018,7 @@ class ApeProject {
     } else if (this.state === 'map') {
       this.lab.update(dt * 0.1);
       this.jungle.update(dt * 0.1, time, this.player.position);
-      this.ui.drawMap(this.player, this.jungle, this.mossman, this.camYaw);
+      this.ui.drawMap(this.player, this.mossman, this.camYaw);
     }
     this.renderer.render(this.scene, this.camera);
   }

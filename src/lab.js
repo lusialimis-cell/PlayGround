@@ -682,18 +682,9 @@ export class Laboratory {
     const light = new THREE.PointLight(0x63e2bc, 2.2, 2.1, 2);
     light.position.set(0, 1.1, 0.4);
     g.add(light);
-    this.terminalPosition = new THREE.Vector3(0, 1, 2.8);
-    this.terminalInteractable = {
-      id: 'terminal',
-      kind: 'terminal',
-      label: 'RESERVE TERMINAL',
-      action: () => this.callbacks.onTerminal?.(),
-      position: this.terminalPosition,
-      range: 2.25,
-    };
-    this.interactables.push(this.terminalInteractable);
     this.terminalScreen = g.children.find((c) => c.material === m.screen0);
     if (this.terminalScreen) this.terminalScreen.userData.keepUnmerged = true;
+    this.setTerminalText('NO DIRECTIVE // WANDER');
   }
 
   /**
@@ -777,7 +768,7 @@ export class Laboratory {
     }
   }
 
-  setTerminalObjective(text) {
+  setTerminalText(text) {
     if (this.terminalScreen) {
       this.terminalScreen.material = new THREE.MeshBasicMaterial({
         map: makeTextTexture(text, { width: 256, height: 128, size: 18, color: '#80f3cf', bg: '#051812', subtle: true }),
@@ -879,7 +870,7 @@ export class Laboratory {
       for (const mat of door.indicatorMaterials) mat.color.setHex(0xff5038);
       door.swLight.material.color.setHex(0xff5038);
     }
-    this.setTerminalObjective('M-08 // LOCAL SYSTEMS');
+    this.setTerminalText('NO DIRECTIVE // WANDER');
   }
 
   isDoorOpenAt(x, z) {

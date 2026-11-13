@@ -49,10 +49,9 @@ function addCylinderGeo(list, radiusTop, radiusBottom, height, segments, x, y, z
 }
 
 export class Jungle {
-  constructor(scene, lab, callbacks = {}) {
+  constructor(scene, lab) {
     this.scene = scene;
     this.lab = lab;
-    this.callbacks = callbacks;
     this.group = new THREE.Group();
     this.group.name = 'JungleReserve';
     scene.add(this.group);
@@ -62,7 +61,6 @@ export class Jungle {
     this.treeColliders = [];
     this.rockColliders = [];
     this.cores = [];
-    this.coreBursts = [];
     this.elapsed = 0;
     this.materials = this.createMaterials();
     this.buildTerrain();
@@ -401,7 +399,7 @@ export class Jungle {
       if (Math.abs(x) < 5.5 && Math.abs(z) < 90) continue;
       if (Math.abs(z) < 5.5 && Math.abs(x) < 90) continue;
       if (d > 240) continue;
-      // Thin clearings around objectives.
+      // Thin clearings around the old field relics.
       if (this.nearPoint(x, z, -116, 73, 12) || this.nearPoint(x, z, 142, -94, 12) || this.nearPoint(x, z, 47, 173, 12)) continue;
       // Some natural clustering leaves open tracking fields.
       const density = 1 - Math.max(0, Math.sin(x * 0.031) * Math.cos(z * 0.027)) * 0.5;
@@ -767,9 +765,9 @@ export class Jungle {
 
   buildCores() {
     const anchors = [
-      { pos: this.coreAnchor0.clone(), name: 'CORE 01 // OBSERVATION', landmark: 'WATCHTOWER' },
-      { pos: this.coreAnchor1.clone(), name: 'CORE 02 // IMPACT', landmark: 'CRASH SITE' },
-      { pos: this.coreAnchor2.clone(), name: 'CORE 03 // RELIQUARY', landmark: 'SUNKEN SHRINE' },
+      { pos: this.coreAnchor0.clone(), landmark: 'WATCHTOWER' },
+      { pos: this.coreAnchor1.clone(), landmark: 'CRASH SITE' },
+      { pos: this.coreAnchor2.clone(), landmark: 'SUNKEN SHRINE' },
     ];
     anchors.forEach((anchor, index) => {
       const group = new THREE.Group();
@@ -825,7 +823,6 @@ export class Jungle {
 
       const core = {
         index,
-        name: anchor.name,
         landmark: anchor.landmark,
         group,
         crystal,
@@ -833,18 +830,7 @@ export class Jungle {
         beamCore,
         groundRing,
         light,
-        collected: false,
         position: new THREE.Vector3(anchor.pos.x, anchor.pos.y + baseY + 1.65, anchor.pos.z),
-        interactable: null,
-      };
-      core.interactable = {
-        id: `core-${index}`,
-        kind: 'core',
-        label: `RESEARCH ${anchor.name}`,
-        action: () => this.collectCore(core),
-        position: core.position,
-        range: 2.8,
-        core,
       };
       this.cores.push(core);
     });
@@ -879,61 +865,6 @@ export class Jungle {
     this.motes = { points, speeds };
   }
 
-  getNearestInteractable(position, cameraDir = null) {
-    let best = null;
-    let bestScore = Infinity;
-    for (const core of this.cores) {
-      if (core.collected) continue;
-      const item = core.interactable;
-      const d = position.distanceTo(item.position);
-      if (d > item.range) continue;
-      let score = d;
-      if (cameraDir) {
-        const dir = item.position.clone().sub(position).normalize();
-        if (cameraDir.dot(dir) < 0.2) score += 5;
-      }
-      if (score < bestScore) {
-        bestScore = score;
-        best = item;
-      }
-    }
-    // Terminal-side consumables / minor interactions can be added here.
-    return best;
-  }
-
-  collectCore(core) {
-    if (core.collected) return false;
-    core.collected = true;
-    core.beam.visible = false;
-    core.beamCore.visible = false;
-    core.groundRing.visible = false;
-    core.light.intensity = 0;
-    core.group.visible = false;
-    this.spawnCoreBurst(core.position);
-    this.callbacks.onCoreCollected?.(core);
-    return true;
-  }
-
-  spawnCoreBurst(position) {
-    const count = 50;
-    const geom = new THREE.BufferGeometry();
-    const positions = new Float32Array(count * 3);
-    const velocities = [];
-    for (let i = 0; i < count; i += 1) {
-      positions[i * 3] = position.x;
-      positions[i * 3 + 1] = position.y;
-      positions[i * 3 + 2] = position.z;
-      const v = new THREE.Vector3(Math.random() - 0.5, Math.random() * 0.9 + 0.15, Math.random() - 0.5).normalize().multiplyScalar(2 + Math.random() * 4);
-      velocities.push(v);
-    }
-    geom.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-    const mat = new THREE.PointsMaterial({ map: glowTexture(), color: 0x8bffe0, size: 0.35, transparent: true, opacity: 1, depthWrite: false, blending: THREE.AdditiveBlending });
-    const points = new THREE.Points(geom, mat);
-    points.frustumCulled = false;
-    this.scene.add(points);
-    this.coreBursts.push({ points, velocities, life: 0, maxLife: 1.4, positions });
-  }
-
   update(dt, time, playerPos) {
     this.elapsed += dt;
     if (this.beacon) {
@@ -947,7 +878,6 @@ export class Jungle {
       this.fireLight.intensity = 6 + Math.sin(time * 17.3) * 2 + Math.sin(time * 31.1) * 1;
     }
     for (const core of this.cores) {
-      if (core.collected) continue;
       core.crystal.rotation.y += dt * 0.85;
       core.crystal.position.y += Math.sin(time * 1.7 + core.index) * 0.0008;
       core.light.intensity = 16 + Math.sin(time * 3.3 + core.index) * 4;
@@ -969,45 +899,6 @@ export class Jungle {
       }
       pos.needsUpdate = true;
     }
-    for (let i = this.coreBursts.length - 1; i >= 0; i -= 1) {
-      const burst = this.coreBursts[i];
-      burst.life += dt;
-      const p = burst.points.geometry.attributes.position;
-      for (let j = 0; j < p.count; j += 1) {
-        burst.velocities[j].y -= 5.5 * dt;
-        p.setXYZ(
-          j,
-          p.getX(j) + burst.velocities[j].x * dt,
-          p.getY(j) + burst.velocities[j].y * dt,
-          p.getZ(j) + burst.velocities[j].z * dt,
-        );
-      }
-      p.needsUpdate = true;
-      burst.points.material.opacity = Math.max(0, 1 - burst.life / burst.maxLife);
-      if (burst.life >= burst.maxLife) {
-        this.scene.remove(burst.points);
-        burst.points.geometry.dispose();
-        burst.points.material.dispose();
-        this.coreBursts.splice(i, 1);
-      }
-    }
-  }
-
-  resetCores() {
-    for (const core of this.cores) {
-      core.collected = false;
-      core.group.visible = true;
-      core.beam.visible = true;
-      core.beamCore.visible = true;
-      core.groundRing.visible = true;
-      core.light.intensity = 18;
-    }
-    for (const burst of this.coreBursts) {
-      this.scene.remove(burst.points);
-      burst.points.geometry.dispose();
-      burst.points.material.dispose();
-    }
-    this.coreBursts.length = 0;
   }
 
   collidesAt(x, z, radius = 0.4) {

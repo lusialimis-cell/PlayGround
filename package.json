@@ -1,7 +1,7 @@
 {
   "name": "ape-project",
   "version": "1.0.0",
-  "description": "APE PROJECT — a 3D pixel-art survival horror laboratory escape",
+  "description": "APE PROJECT — a 3D pixel-art survival horror exploration of a jungle reserve",
   "type": "module",
   "scripts": {
     "dev": "vite --host 0.0.0.0 --port 3002",

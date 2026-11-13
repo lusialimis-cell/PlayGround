@@ -17,8 +17,6 @@ export class UI {
       compassDeg: document.getElementById('compass-deg'),
       zoneLabel: document.getElementById('zone-label'),
       markerRow: document.getElementById('marker-row'),
-      objectiveTitle: document.getElementById('objective-title'),
-      objectiveDetail: document.getElementById('objective-detail'),
       healthFill: document.getElementById('health-fill'),
       staminaFill: document.getElementById('stamina-fill'),
       noiseFill: document.getElementById('noise-fill'),
@@ -46,7 +44,6 @@ export class UI {
       pause: document.getElementById('pause-overlay'),
       death: document.getElementById('death-overlay'),
       deathDetail: document.getElementById('death-detail'),
-      win: document.getElementById('win-overlay'),
       screenFade: document.getElementById('screen-fade'),
       crosshair: document.getElementById('crosshair'),
       touch: document.getElementById('touch-controls'),
@@ -68,7 +65,6 @@ export class UI {
     this.subtitleTimer = 0;
     this.fadeTimer = 0;
     this.lastVitals = {};
-    this.lastObjective = null;
     this.compassWidth = 0;
     this.mapTerrain = null;
     this.lastMapTime = 0;
@@ -173,13 +169,7 @@ export class UI {
       return;
     }
     this.el.interactWrap.classList.add('show');
-    if (item.kind === 'term' || item.kind === 'terminal') {
-      this.el.interactLabel.textContent = 'SITE TERMINAL // LOCAL SYSTEMS';
-      this.el.interactAction.textContent = 'INSPECT TERMINAL';
-    } else if (item.kind === 'core') {
-      this.el.interactLabel.textContent = item.label;
-      this.el.interactAction.textContent = 'COLLECT SPECIMEN';
-    } else if (item.kind === 'door') {
+    if (item.kind === 'door') {
       const d = door || item.door;
       this.el.interactLabel.textContent = `${item.label} // LEFT SWITCH`;
       this.el.interactAction.textContent = d.busy ? 'HYDRAULIC CYCLE IN PROGRESS' : d.target > 0.5 ? 'CLOSE HYDRAULIC DOOR' : 'OPEN HYDRAULIC DOOR';
@@ -208,32 +198,15 @@ export class UI {
     this.el.noiseFill.style.background = `linear-gradient(90deg, #647f3f, ${noiseColor})`;
   }
 
-  setCompass(heading, player, jungle, mossman, cameraYaw) {
+  setCompass(heading, player, mossman, cameraYaw) {
     const norm = ((heading % 360) + 360) % 360;
     this.el.compassDeg.textContent = `${String(Math.round(norm)).padStart(3, '0')}°`;
     const labelWidth = 56;
     const centerIndex = (norm + 360) / 15;
     const x = this.compassWidth / 2 - (centerIndex * labelWidth + labelWidth / 2);
     this.el.compassStrip.style.transform = `translateX(${x}px)`;
-    // Marker row: nearest core bearing and predator fix.
+    // Marker row: predator fix only.
     const markers = [];
-    if (jungle) {
-      const remaining = jungle.cores.filter((c) => !c.collected);
-      if (remaining.length) {
-        let nearest = remaining[0];
-        let nd = Infinity;
-        for (const c of remaining) {
-          const d = player.position.distanceTo(c.position);
-          if (d < nd) {
-            nd = d;
-            nearest = c;
-          }
-        }
-        const bearing = this.bearing(player.position, nearest.position, cameraYaw);
-        const side = bearing < 0 ? '◂' : '▸';
-        markers.push(`${side} ${nearest.landmark} ${Math.round(nd)}M`);
-      }
-    }
     if (mossman) {
       const info = mossman.getThreatInfo(player);
       if (info.distance < 85 || info.state === 'chase' || info.state === 'lurk' || info.suspicion > 0.5) {
@@ -343,7 +316,7 @@ export class UI {
     this.el.mapOverlay.classList.toggle('show', open);
   }
 
-  drawMap(player, jungle, mossman, cameraYaw, force = false) {
+  drawMap(player, mossman, cameraYaw, force = false) {
     if (!this.mapOpen && !force) return;
     const now = performance.now();
     if (!force && now - this.lastMapTime < 180) return;
@@ -391,20 +364,6 @@ export class UI {
     ctx.fillStyle = '#c9e76c';
     ctx.font = 'bold 13px monospace';
     ctx.fillText('LAB', w / 2 - 13, h / 2 + 5);
-    // Cores.
-    for (const core of jungle.cores) {
-      if (core.collected) continue;
-      const [x, z] = toMap(core.position.x, core.position.z);
-      ctx.fillStyle = '#76f5d0';
-      ctx.fillRect(x - 3, z - 3, 6, 6);
-      ctx.strokeStyle = 'rgba(118,245,208,0.28)';
-      ctx.beginPath();
-      ctx.arc(x, z, 13 + Math.sin(now * 0.003 + core.index) * 3, 0, Math.PI * 2);
-      ctx.stroke();
-      ctx.fillStyle = 'rgba(151,229,197,0.66)';
-      ctx.font = '10px monospace';
-      ctx.fillText(`CORE 0${core.index + 1}`, x + 11, z + 4);
-    }
     // Player.
     const [px, pz] = toMap(player.position.x, player.position.z);
     ctx.save();
@@ -493,23 +452,6 @@ export class UI {
 
   hideDeath() {
     this.el.death.classList.remove('show');
-  }
-
-  showWin() {
-    this.el.win.classList.add('show');
-  }
-
-  hideWin() {
-    this.el.win.classList.remove('show');
-  }
-
-  setObjective(collected, total) {
-    const complete = collected >= total;
-    this.el.objectiveTitle.innerHTML = `${complete ? 'RETURN TO LAB TERMINAL' : 'RECOVER RESEARCH CORES'} <i>${collected} / ${total}</i>`;
-    this.el.objectiveDetail.textContent = complete
-      ? 'All cores secured. Use the laboratory terminal to restore the uplink.'
-      : 'Find the remaining cores marked on your compass, then return to the lab terminal.';
-    this.el.objectiveTitle.parentElement.classList.toggle('complete', complete);
   }
 
   setCameraMode(mode) {
