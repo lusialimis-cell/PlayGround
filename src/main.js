@@ -109,7 +109,8 @@ class ApeProject {
       this.ui.setLoading(94, 'CALIBRATING ACOUSTIC ARRAY // 094');
       await this.frameWait();
       this.buildFpArms();
-      this.lab.setTerminalObjective('M-08 // LOCAL SYSTEMS');
+      this.ui.setObjective(0, this.jungle.cores.length);
+      this.lab.setTerminalObjective(`CORES SECURED 0/${this.jungle.cores.length} // UPLINK OFFLINE`);
       this.ui.setLoading(100, 'LINK ESTABLISHED // AWAITING OPERATOR');
       this.resize();
       this.snapIntroCamera();
@@ -288,6 +289,7 @@ class ApeProject {
     document.getElementById('resume-btn').addEventListener('click', () => this.resume());
     document.getElementById('restart-btn').addEventListener('click', () => this.restartRun());
     document.getElementById('retry-btn').addEventListener('click', () => this.restartRun());
+    document.getElementById('win-retry-btn').addEventListener('click', () => this.restartRun());
     document.getElementById('map-close').addEventListener('click', () => this.closeMap());
     window.addEventListener('keydown', (event) => this.onKeyDown(event));
     window.addEventListener('keyup', (event) => this.keys.delete(event.code));
@@ -583,7 +585,7 @@ class ApeProject {
     }
     if (item.kind === 'terminal') this.audio.terminal();
     item.action();
-    this.updateInteraction(this.ui, true);
+    if (this.state === 'playing') this.updateInteraction();
   }
 
   onHydraulic(door, open) {
@@ -622,15 +624,33 @@ class ApeProject {
     this.effects.voxels.spawnShards(core.position, 24);
     this.effects.waves.pulse(core.position, 11, 0x7dffe0, 1.3, 0.5);
     this.audio.pickup();
-    this.ui.toast(`${core.name} // COLLECTED`, 'core', 3200);
-    this.ui.subtitle('A strange piece of research equipment. The reserve holds plenty more secrets.', 4200);
+    const collected = this.jungle.cores.filter((item) => item.collected).length;
+    const total = this.jungle.cores.length;
+    this.ui.setObjective(collected, total);
+    this.lab.setTerminalObjective(`CORES SECURED ${collected}/${total} // ${collected === total ? 'UPLINK READY' : 'UPLINK OFFLINE'}`);
+    this.ui.toast(`${core.name} // COLLECTED  ${collected}/${total}`, 'core', 3200);
+    this.ui.subtitle(collected === total
+      ? 'That was the last core. Get back to the laboratory terminal and restore the uplink.'
+      : 'Core secured. Follow the remaining field markers, then return to the laboratory terminal.', 4600);
   }
 
   onTerminal() {
     if (this.state !== 'playing') return;
-    this.audio.terminal();
-    this.ui.toast('LOCAL SYSTEMS // NO ACTIVE UPLINK', '', 3200);
-    this.ui.subtitle('An old local terminal. Nothing here is asking you to do anything.', 3600);
+    const total = this.jungle.cores.length;
+    const collected = this.jungle.cores.filter((core) => core.collected).length;
+    if (collected < total) {
+      this.lab.setTerminalObjective(`CORES SECURED ${collected}/${total} // UPLINK OFFLINE`);
+      this.ui.toast(`UPLINK LOCKED // ${total - collected} CORE${total - collected === 1 ? '' : 'S'} REQUIRED`, 'danger', 3600);
+      this.ui.subtitle(`The terminal needs all ${total} research cores. ${collected} of ${total} secured; the compass marks the remaining field signals.`, 4600);
+      return;
+    }
+
+    this.lab.setTerminalObjective('UPLINK RESTORED // RESCUE SIGNAL SENT');
+    this.state = 'won';
+    this.currentInteractable = null;
+    this.ui.setInteract(null);
+    this.ui.showWin();
+    if (document.pointerLockElement) document.exitPointerLock();
   }
 
   onPlayerDamage(amount, source) {
@@ -1012,9 +1032,12 @@ class ApeProject {
     this.mossman.reset();
     this.lab.resetDoors();
     this.jungle.resetCores();
+    this.ui.setObjective(0, this.jungle.cores.length);
+    this.lab.setTerminalObjective(`CORES SECURED 0/${this.jungle.cores.length} // UPLINK OFFLINE`);
     this.effects.voxels.items.forEach((item) => { item.active = false; });
     this.effects.waves.items.forEach((item) => { item.active = false; item.mesh.visible = false; });
     this.ui.hideDeath();
+    this.ui.hideWin();
     this.ui.showPause(false);
     this.ui.setMap(false);
     this.ui.setInteract(null);

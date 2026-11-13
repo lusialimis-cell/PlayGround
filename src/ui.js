@@ -17,6 +17,8 @@ export class UI {
       compassDeg: document.getElementById('compass-deg'),
       zoneLabel: document.getElementById('zone-label'),
       markerRow: document.getElementById('marker-row'),
+      objectiveTitle: document.getElementById('objective-title'),
+      objectiveDetail: document.getElementById('objective-detail'),
       healthFill: document.getElementById('health-fill'),
       staminaFill: document.getElementById('stamina-fill'),
       noiseFill: document.getElementById('noise-fill'),
@@ -44,6 +46,7 @@ export class UI {
       pause: document.getElementById('pause-overlay'),
       death: document.getElementById('death-overlay'),
       deathDetail: document.getElementById('death-detail'),
+      win: document.getElementById('win-overlay'),
       screenFade: document.getElementById('screen-fade'),
       crosshair: document.getElementById('crosshair'),
       touch: document.getElementById('touch-controls'),
@@ -490,6 +493,23 @@ export class UI {
 
   hideDeath() {
     this.el.death.classList.remove('show');
+  }
+
+  showWin() {
+    this.el.win.classList.add('show');
+  }
+
+  hideWin() {
+    this.el.win.classList.remove('show');
+  }
+
+  setObjective(collected, total) {
+    const complete = collected >= total;
+    this.el.objectiveTitle.innerHTML = `${complete ? 'RETURN TO LAB TERMINAL' : 'RECOVER RESEARCH CORES'} <i>${collected} / ${total}</i>`;
+    this.el.objectiveDetail.textContent = complete
+      ? 'All cores secured. Use the laboratory terminal to restore the uplink.'
+      : 'Find the remaining cores marked on your compass, then return to the lab terminal.';
+    this.el.objectiveTitle.parentElement.classList.toggle('complete', complete);
   }
 
   setCameraMode(mode) {

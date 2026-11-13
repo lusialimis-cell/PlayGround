@@ -48,8 +48,8 @@
         <div class="start-brief">
           <div class="brief-index">FIELD NOTES <b>№ 014</b></div>
           <p>
-            The reserve stretches beyond the perimeter, quiet beneath the fog. Step outside, explore
-            the grounds, and see what the old facility left behind.
+            Recover the three scattered research cores, then bring them back to the laboratory terminal
+            to restore the uplink and escape. Stay quiet: Subject M-08 is listening.
           </p>
           <div class="brief-rule"><span></span><i>SUBJECT M-08 // "MOSSMAN" // AT LARGE</i><span></span></div>
         </div>
@@ -102,6 +102,12 @@
           </div>
 
         </header>
+
+        <aside class="objective-panel" aria-live="polite" aria-label="Current objective">
+          <span class="objective-kicker">MISSION // FIELD RECOVERY</span>
+          <b id="objective-title">RECOVER RESEARCH CORES <i>0 / 3</i></b>
+          <span id="objective-detail">Find the three cores marked on your compass, then return to the lab terminal.</span>
+        </aside>
 
         <div id="alert-banner" class="alert-banner">
           <span class="alert-icon">((•))</span>
@@ -212,6 +218,15 @@
           <h2>YOU WERE<br />HEARD.</h2>
           <p id="death-detail">The jungle went quiet.</p>
           <button id="retry-btn" type="button">RE-ENTER THE RESERVE</button>
+        </div>
+      </section>
+
+      <section id="win-overlay" class="end-overlay win">
+        <div class="end-content">
+          <span class="end-kicker">UPLINK RESTORED // SITE 09</span>
+          <h2>YOU MADE<br />IT OUT.</h2>
+          <p>All three research cores are online. The reserve uplink is restored—and a rescue signal is finally leaving the Green Veil.</p>
+          <button id="win-retry-btn" type="button">PLAY AGAIN</button>
         </div>
       </section>
 
